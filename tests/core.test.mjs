@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';import {noteName,decodeMessage,controlStats,pitchStats,clockBpm,classifyEncoder,messageRate} from '../midi-core.js';
+import assert from 'node:assert/strict';import {noteName,decodeMessage,controlStats,pitchStats,clockBpm,classifyEncoder,messageRate,velocityHistogram,detectChatter,eventsToCsv} from '../midi-core.js';
 assert.equal(noteName(60),'C4');
 assert.equal(decodeMessage([0x90,60,100]).kind,'noteon');
 assert.equal(decodeMessage([0x90,60,0]).kind,'noteoff');
@@ -8,4 +8,11 @@ const p=pitchStats([-8192,0,8191,10,-10]);assert.equal(p.min,-8192);assert.equal
 const ticks=Array.from({length:48},(_,i)=>i*(60000/120/24));assert.ok(Math.abs(clockBpm(ticks)-120)<0.01);
 assert.equal(classifyEncoder(Array.from({length:32},(_,i)=>i)),'Absolute 0–127');
 assert.equal(messageRate([0,100,200,900],1000),4);
+assert.equal(messageRate([0,100],1000,5000),0);
+assert.equal(classifyEncoder([0,127,0,127,127]),'Switch / button');
+assert.equal(velocityHistogram([1,127,64]).reduce((a,b)=>a+b,0),3);
+const ev=(kind,t)=>({kind,t,channel:1,a:60,b:1,value:1,label:'x',hex:'90'});
+assert.equal(detectChatter([ev('noteon',0),ev('noteoff',50),ev('noteon',60)]),1);
+assert.equal(detectChatter([ev('noteon',0),ev('noteoff',50),ev('noteon',200)]),0);
+assert.ok(eventsToCsv([ev('noteon',1)]).split('\n').length===2);
 console.log('MIDItest core tests: PASS');
