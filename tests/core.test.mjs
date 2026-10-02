@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import {noteName,decodeMessage,controlStats,pitchStats,clockBpm,classifyEncoder,messageRate} from '../midi-core.js';
+assert.equal(noteName(60),'C4');
+assert.equal(decodeMessage([0x90,60,100]).kind,'noteon');
+assert.equal(decodeMessage([0x90,60,0]).kind,'noteoff');
+assert.equal(decodeMessage([0xE0,0,64]).value,0);
+const c=controlStats([0,1,2,3,127]);assert.equal(c.min,0);assert.equal(c.max,127);assert.equal(c.jumps,1);
+const p=pitchStats([-8192,0,8191,10,-10]);assert.equal(p.min,-8192);assert.equal(p.max,8191);
+const ticks=Array.from({length:48},(_,i)=>i*(60000/120/24));assert.ok(Math.abs(clockBpm(ticks)-120)<0.01);
+assert.equal(classifyEncoder(Array.from({length:32},(_,i)=>i)),'Absolute 0–127');
+assert.equal(messageRate([0,100,200,900],1000),4);
+console.log('MIDItest core tests: PASS');
