@@ -23,7 +23,27 @@ set(MIDITEST_CORE_SOURCES
     src/core/SessionModel.cpp
     src/core/SessionModel.h
     src/core/DiagnosticEngine.cpp
-    src/core/DiagnosticEngine.h)
+    src/core/DiagnosticEngine.h
+    src/core/MappingModel.cpp
+    src/core/MappingModel.h
+    src/core/ReportBuilder.cpp
+    src/core/ReportBuilder.h)
+
+set(MIDITEST_UI_SOURCES
+    src/ui/MainView.cpp
+    src/ui/MainView.h
+    src/ui/MonitorView.cpp
+    src/ui/MonitorView.h
+    src/ui/ControlsView.cpp
+    src/ui/ControlsView.h
+    src/ui/KeyboardView.cpp
+    src/ui/KeyboardView.h
+    src/ui/TimingView.cpp
+    src/ui/TimingView.h
+    src/ui/MappingView.cpp
+    src/ui/MappingView.h
+    src/ui/ReportView.cpp
+    src/ui/ReportView.h)
 
 juce_add_plugin(MIDItest
     COMPANY_NAME "Circuit Drift Labs"
@@ -46,7 +66,8 @@ target_sources(MIDItest PRIVATE
     src/PluginProcessor.h
     src/PluginEditor.cpp
     src/PluginEditor.h
-    ${MIDITEST_CORE_SOURCES})
+    ${MIDITEST_CORE_SOURCES}
+    ${MIDITEST_UI_SOURCES})
 
 target_include_directories(MIDItest PRIVATE src)
 
