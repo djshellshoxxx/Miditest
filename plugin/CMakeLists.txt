@@ -9,6 +9,22 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(cmake/Dependencies.cmake)
 
+set(MIDITEST_CORE_SOURCES
+    src/core/MidiMessageDecoder.cpp
+    src/core/MidiMessageDecoder.h
+    src/core/MidiEvent.h
+    src/core/ControlAnalyzer.cpp
+    src/core/ControlAnalyzer.h
+    src/core/PitchAnalyzer.cpp
+    src/core/PitchAnalyzer.h
+    src/core/ClockAnalyzer.cpp
+    src/core/ClockAnalyzer.h
+    src/core/EventQueue.h
+    src/core/SessionModel.cpp
+    src/core/SessionModel.h
+    src/core/DiagnosticEngine.cpp
+    src/core/DiagnosticEngine.h)
+
 juce_add_plugin(MIDItest
     COMPANY_NAME "Circuit Drift Labs"
     BUNDLE_ID "io.circuitdriftlabs.miditest"
@@ -29,7 +45,10 @@ target_sources(MIDItest PRIVATE
     src/PluginProcessor.cpp
     src/PluginProcessor.h
     src/PluginEditor.cpp
-    src/PluginEditor.h)
+    src/PluginEditor.h
+    ${MIDITEST_CORE_SOURCES})
+
+target_include_directories(MIDItest PRIVATE src)
 
 target_compile_definitions(MIDItest PUBLIC
     JUCE_WEB_BROWSER=0
