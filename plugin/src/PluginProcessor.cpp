@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "core/MidiMessageDecoder.h"
 
 MidiTestAudioProcessor::MidiTestAudioProcessor()
     : juce::AudioProcessor(BusesProperties()
@@ -9,7 +10,14 @@ MidiTestAudioProcessor::MidiTestAudioProcessor()
     setLatencySamples(0);
 }
 
-void MidiTestAudioProcessor::prepareToPlay(double, int) {}
+void MidiTestAudioProcessor::prepareToPlay(double sampleRate, int)
+{
+    currentSampleRate = sampleRate > 0.0 ? sampleRate : 44100.0;
+    processedSamples = 0;
+    droppedAnalysisEvents.store(0, std::memory_order_relaxed);
+    eventQueue.reset();
+}
+
 void MidiTestAudioProcessor::releaseResources() {}
 
 bool MidiTestAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -21,9 +29,25 @@ bool MidiTestAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
     return out == juce::AudioChannelSet::mono() || out == juce::AudioChannelSet::stereo();
 }
 
-void MidiTestAudioProcessor::processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&)
+void MidiTestAudioProcessor::processBlock(juce::AudioBuffer<float>& audio, juce::MidiBuffer& midi)
 {
-    // Deliberately transparent. Diagnostic observation is added without mutating either buffer.
+    juce::ignoreUnused(audio);
+
+    for (const auto metadata : midi)
+    {
+        const double seconds = static_cast<double>(processedSamples + static_cast<std::uint64_t>(juce::jmax(0, metadata.samplePosition))) / currentSampleRate;
+        const auto decoded = miditest::decodeMidiMessage(metadata.getMessage(), metadata.samplePosition, seconds);
+        if (! eventQueue.tryPush(decoded))
+            droppedAnalysisEvents.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    processedSamples += static_cast<std::uint64_t>(juce::jmax(0, audio.getNumSamples()));
+    // Audio and MIDI buffers are intentionally untouched.
+}
+
+bool MidiTestAudioProcessor::tryPopEvent(miditest::DecodedMidiEvent& event) noexcept
+{
+    return eventQueue.tryPop(event);
 }
 
 juce::AudioProcessorEditor* MidiTestAudioProcessor::createEditor()
