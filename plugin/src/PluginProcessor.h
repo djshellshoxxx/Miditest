@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include "core/EventQueue.h"
+#include "core/MappingModel.h"
 #include "core/MidiEvent.h"
 
 class MidiTestAudioProcessor final : public juce::AudioProcessor
@@ -19,6 +20,11 @@ public:
 
     bool tryPopEvent(miditest::DecodedMidiEvent&) noexcept;
     std::uint64_t getDroppedAnalysisEventCount() const noexcept { return droppedAnalysisEvents.load(std::memory_order_relaxed); }
+
+    miditest::MappingModel& getMappingModel() noexcept { return mappingModel; }
+    const miditest::MappingModel& getMappingModel() const noexcept { return mappingModel; }
+    void setUiPreference(const juce::Identifier& name, const juce::var& value);
+    juce::var getUiPreference(const juce::Identifier& name, const juce::var& fallback = {}) const;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
@@ -43,4 +49,6 @@ private:
     std::atomic<std::uint64_t> droppedAnalysisEvents { 0 };
     std::uint64_t processedSamples = 0;
     double currentSampleRate = 44100.0;
+    miditest::MappingModel mappingModel;
+    juce::ValueTree uiPreferences { "UI" };
 };
