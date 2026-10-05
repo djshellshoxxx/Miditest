@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "ui/MainView.h"
 
 class MidiTestAudioProcessorEditor final : public juce::AudioProcessorEditor
 {
@@ -14,8 +15,7 @@ public:
 
 private:
     MidiTestAudioProcessor& processor;
-    juce::Label title;
-    juce::Label subtitle;
+    miditest::MainView mainView;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiTestAudioProcessorEditor)
 };
