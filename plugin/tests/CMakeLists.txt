@@ -1,5 +1,6 @@
 function(miditest_add_test target test_name)
-    add_executable(${target} ${ARGN})
+    juce_add_console_app(${target} PRODUCT_NAME "${target}")
+    target_sources(${target} PRIVATE ${ARGN})
     juce_generate_juce_header(${target})
     target_include_directories(${target} PRIVATE ../src)
     target_compile_features(${target} PRIVATE cxx_std_20)
@@ -15,11 +16,28 @@ function(miditest_add_test target test_name)
     add_test(NAME ${test_name} COMMAND ${target})
 endfunction()
 
-miditest_add_test(MIDItestTests smoke
-    test_smoke.cpp
+set(MIDITEST_TEST_PLUGIN_SOURCES
     ../src/PluginProcessor.cpp
     ../src/PluginEditor.cpp
-    ../src/core/MidiMessageDecoder.cpp)
+    ../src/core/MidiMessageDecoder.cpp
+    ../src/core/ControlAnalyzer.cpp
+    ../src/core/PitchAnalyzer.cpp
+    ../src/core/ClockAnalyzer.cpp
+    ../src/core/SessionModel.cpp
+    ../src/core/DiagnosticEngine.cpp
+    ../src/core/MappingModel.cpp
+    ../src/core/ReportBuilder.cpp
+    ../src/ui/MainView.cpp
+    ../src/ui/MonitorView.cpp
+    ../src/ui/ControlsView.cpp
+    ../src/ui/KeyboardView.cpp
+    ../src/ui/TimingView.cpp
+    ../src/ui/MappingView.cpp
+    ../src/ui/ReportView.cpp)
+
+miditest_add_test(MIDItestTests smoke
+    test_smoke.cpp
+    ${MIDITEST_TEST_PLUGIN_SOURCES})
 
 miditest_add_test(MIDItestDecoderTests decoder
     test_decoder.cpp
@@ -39,9 +57,7 @@ miditest_add_test(MIDItestClockTests clock
 
 miditest_add_test(MIDItestProcessorTests processor
     test_processor.cpp
-    ../src/PluginProcessor.cpp
-    ../src/PluginEditor.cpp
-    ../src/core/MidiMessageDecoder.cpp)
+    ${MIDITEST_TEST_PLUGIN_SOURCES})
 
 miditest_add_test(MIDItestSessionTests session
     test_session.cpp
@@ -49,3 +65,16 @@ miditest_add_test(MIDItestSessionTests session
     ../src/core/ControlAnalyzer.cpp
     ../src/core/PitchAnalyzer.cpp
     ../src/core/ClockAnalyzer.cpp)
+
+miditest_add_test(MIDItestMappingStateTests mapping_state
+    test_mapping_state.cpp
+    ${MIDITEST_TEST_PLUGIN_SOURCES})
+
+miditest_add_test(MIDItestReportTests report
+    test_report.cpp
+    ../src/core/ReportBuilder.cpp
+    ../src/core/MidiMessageDecoder.cpp)
+
+miditest_add_test(MIDItestUiTests ui
+    test_ui.cpp
+    ${MIDITEST_TEST_PLUGIN_SOURCES})
