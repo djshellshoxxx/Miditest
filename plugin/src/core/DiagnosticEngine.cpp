@@ -15,6 +15,7 @@ std::size_t DiagnosticEngine::drain()
     while (processor.tryPopEvent(event))
     {
         session.ingest(event);
+        processor.getMappingModel().observe(event);
         ++count;
     }
     return count;
