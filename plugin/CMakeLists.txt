@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(MIDItestNative VERSION 0.1.0 LANGUAGES CXX)
+project(MIDItestNative VERSION 0.1.0 LANGUAGES C CXX)
 
 option(MIDITEST_BUILD_TESTS "Build MIDItest native tests" ON)
 set(CMAKE_CXX_STANDARD 20)
