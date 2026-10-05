@@ -1,6 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <atomic>
+#include <cstdint>
+#include "core/EventQueue.h"
+#include "core/MidiEvent.h"
 
 class MidiTestAudioProcessor final : public juce::AudioProcessor
 {
@@ -12,6 +16,9 @@ public:
     void releaseResources() override;
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    bool tryPopEvent(miditest::DecodedMidiEvent&) noexcept;
+    std::uint64_t getDroppedAnalysisEventCount() const noexcept { return droppedAnalysisEvents.load(std::memory_order_relaxed); }
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
@@ -30,4 +37,10 @@ public:
 
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
+
+private:
+    miditest::SpscEventQueue<miditest::DecodedMidiEvent, 2048> eventQueue;
+    std::atomic<std::uint64_t> droppedAnalysisEvents { 0 };
+    std::uint64_t processedSamples = 0;
+    double currentSampleRate = 44100.0;
 };
