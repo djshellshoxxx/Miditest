@@ -44,7 +44,8 @@ Event DiagnosticModel::decode(const uint8_t* data, size_t size, double seconds) 
     e.storedBytes = static_cast<uint16_t>(std::min<size_t>(size, e.bytes.size()));
     std::copy_n(data, e.storedBytes, e.bytes.begin());
     if (size == 0) return e;
-    const auto status = data[0], type = status & 0xF0;
+    const uint8_t status = data[0];
+    const int type = status & 0xF0;
     const int a = size > 1 ? data[1] : 0, b = size > 2 ? data[2] : 0;
     e.channel = (type >= 0x80 && type <= 0xE0) ? ((status & 0x0F) + 1) : 0;
     e.a = a; e.b = b; e.value = size > 2 ? b : a;
