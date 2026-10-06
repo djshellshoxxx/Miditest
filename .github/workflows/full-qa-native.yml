@@ -2,7 +2,7 @@ name: Full QA and native builds
 
 on:
   push:
-    branches: ["main", "codex/miditest-native-clap-qa"]
+    branches: ["main"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
