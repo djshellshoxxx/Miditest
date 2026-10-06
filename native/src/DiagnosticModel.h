@@ -69,6 +69,23 @@ struct Snapshot {
     double clockBpm{};
     double currentRate{};
     double peakRate{};
+    int velocityMin{};
+    int velocityMax{};
+    double velocityMean{};
+    double velocityStdev{};
+    int channelPressureMin{};
+    int channelPressureMax{};
+    double channelPressureMean{};
+    double channelPressureStdev{};
+    int polyPressureMin{};
+    int polyPressureMax{};
+    double polyPressureMean{};
+    double polyPressureStdev{};
+    double noteDurationMeanMs{};
+    double noteDurationStdevMs{};
+    double interOnsetMeanMs{};
+    size_t parameterEvents{};
+    size_t highResolutionPairs{};
 };
 
 class DiagnosticModel {
@@ -96,8 +113,23 @@ private:
     std::array<ControlStats, 16 * 128> controls_{};
     std::array<std::array<bool, 128>, 16> activeNotes_{};
     std::array<bool, 128> notesSeen_{};
+    struct ParamState { int mode{}; int msb{-1}; int lsb{-1}; int dataMsb{}; int dataLsb{}; };
+    struct ParamEvent { bool nrpn{}; int channel{}; int parameter{}; int value14{}; int delta{}; double seconds{}; };
+
     RunningStats velocities_;
+    RunningStats channelPressure_;
+    RunningStats polyPressure_;
     RunningStats pitchCenter_;
+    RunningStats noteDurationsMs_;
+    RunningStats interOnsetMs_;
+    std::array<std::array<double, 128>, 16> noteStart_{};
+    double lastNoteOnSeconds_{-1.0};
+    std::array<ParamState, 16> parameterState_{};
+    std::deque<ParamEvent> parameterEvents_;
+    std::array<std::array<int, 128>, 16> lastCcValue_{};
+    std::array<std::array<bool, 128>, 16> lastCcSeen_{};
+    std::array<std::array<int, 32>, 16> highResValue_{};
+    std::array<std::array<bool, 32>, 16> highResSeen_{};
     uint64_t totalEvents_{};
     uint64_t duplicateNoteOns_{};
     uint64_t unmatchedNoteOffs_{};
