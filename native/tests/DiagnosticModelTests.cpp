@@ -1,38 +1,40 @@
 #include "../src/DiagnosticModel.h"
-#include <cassert>
+#include <cstdlib>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
 
 using namespace miditest;
 
+#define CHECK(x) do { if (!(x)) { std::cerr << "CHECK failed: " #x << " at " << __FILE__ << ':' << __LINE__ << '\n'; std::exit(1); } } while(false)
+
 static void basicProtocolTests() {
     DiagnosticModel m;
     const uint8_t on[]{0x90,60,100}, off[]{0x90,60,0}, cc0[]{0xB0,7,0}, cc127[]{0xB0,7,127}, bend[]{0xE0,0,64};
     m.ingest(on,3,0.0); m.ingest(off,3,0.1); m.ingest(cc0,3,0.2); m.ingest(cc127,3,0.3); m.ingest(bend,3,0.4);
     auto s=m.snapshot();
-    assert(s.totalEvents==5); assert(s.notesSeen[60]); assert(!s.heldNotes[60]);
-    auto c=m.control(1,7); assert(c.count==2); assert(c.min==0); assert(c.max==127); assert(c.coverage()>99.9);
-    assert(s.pitchMin==0 && s.pitchMax==0);
+    CHECK(s.totalEvents==5); CHECK(s.notesSeen[60]); CHECK(!s.heldNotes[60]);
+    auto c=m.control(1,7); CHECK(c.count==2); CHECK(c.min==0); CHECK(c.max==127); CHECK(c.coverage()>99.9);
+    CHECK(s.pitchMin==0 && s.pitchMax==0);
 }
 
 static void pairingTests() {
     DiagnosticModel m; const uint8_t on[]{0x91,64,90}, off[]{0x81,64,0};
     m.ingest(on,3,0.0); m.ingest(on,3,0.1); m.ingest(off,3,0.2); m.ingest(off,3,0.3);
-    const auto s=m.snapshot(); assert(s.duplicateNoteOns==1); assert(s.unmatchedNoteOffs==1);
+    const auto s=m.snapshot(); CHECK(s.duplicateNoteOns==1); CHECK(s.unmatchedNoteOffs==1);
 }
 
 static void clockTests() {
     DiagnosticModel m; const uint8_t clock[]{0xF8};
     const double tick=60.0/120.0/24.0;
     for(int i=0;i<96;++i)m.ingest(clock,1,i*tick);
-    assert(std::abs(m.snapshot().clockBpm-120.0)<0.01);
+    CHECK(std::abs(m.snapshot().clockBpm-120.0)<0.01);
 }
 
 static void sysexBoundTest() {
     DiagnosticModel m; uint8_t bytes[600]{}; bytes[0]=0xF0; bytes[599]=0xF7;
     m.ingest(bytes,600,0.0); const auto e=m.eventsCopy().back();
-    assert(e.kind==EventKind::SysEx); assert(e.originalBytes==600); assert(e.storedBytes==256);
+    CHECK(e.kind==EventKind::SysEx); CHECK(e.originalBytes==600); CHECK(e.storedBytes==256);
 }
 
 static void stressTest() {
@@ -50,9 +52,9 @@ static void stressTest() {
         t += 0.0001;
     }
     const auto s=m.snapshot();
-    assert(s.totalEvents==1000000); assert(s.historyEvents==DiagnosticModel::maxHistory);
-    assert(s.controlsSeen==128); assert(s.peakRate>9000.0);
-    const auto json=m.reportJson("Stress Device","test"); assert(json.find("\"events\": 1000000")!=std::string::npos);
+    CHECK(s.totalEvents==1000000); CHECK(s.historyEvents==DiagnosticModel::maxHistory);
+    CHECK(s.controlsSeen==128); CHECK(s.peakRate>9000.0);
+    const auto json=m.reportJson("Stress Device","test"); CHECK(json.find("\"events\": 1000000")!=std::string::npos);
 }
 
 int main() {
