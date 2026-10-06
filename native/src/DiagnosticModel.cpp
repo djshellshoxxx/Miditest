@@ -25,7 +25,7 @@ const char* kindName(EventKind k) {
         case EventKind::Start: return "Start"; case EventKind::Continue: return "Continue";
         case EventKind::Stop: return "Stop"; case EventKind::SongPosition: return "Song Position";
         case EventKind::ActiveSense: return "Active Sense"; case EventKind::SysEx: return "SysEx";
-        default: return "System";
+        case EventKind::System: return "System"; case EventKind::Count: return "Count";
     }
 }
 
