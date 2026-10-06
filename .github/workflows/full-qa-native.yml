@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: find build/native -type f -o -type d | grep -E 'MidiTestNative|\.clap$' | tail -80
       - name: Install CLAP validator
-        run: cargo install clap-validator --locked
+        run: cargo install --git https://github.com/free-audio/clap-validator --tag 0.4.1 --locked
       - name: Validate CLAP
         shell: bash
         run: |
