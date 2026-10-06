@@ -16,6 +16,7 @@ private:
     juce::Label title_, status_, statEvents_, statRate_, statKeys_, statControls_;
     juce::TextEditor body_;
     juce::TextButton reset_{"Clear"}, exportReport_{"Export report"}, exportCsv_{"Export capture"}, help_{"Help"};
+    juce::TextButton runLoopback_{"Run loopback"}, saveBaseline_{"Save baseline"}, compareBaseline_{"Compare baseline"};
     juce::TextButton noteOn_{"Note On"}, noteOff_{"Note Off"}, sendCc_{"Send CC"}, sendProgram_{"Program"}, sendPitch_{"Pitch Bend"}, panic_{"Panic All"};
     juce::Slider channel_, note_, velocity_, cc_, ccValue_, program_, pitch_;
     juce::TextEditor mappingLabel_;
@@ -36,6 +37,9 @@ private:
     juce::String mappingText() const;
     juce::String reportText() const;
     void chooseSave(const juce::String& suggested, const juce::String& content);
+    juce::File baselineFile() const;
+    void saveBaseline();
+    void compareBaseline();
     static void setupNumber(juce::Slider&, double min, double max, double value);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiTestEditor)
