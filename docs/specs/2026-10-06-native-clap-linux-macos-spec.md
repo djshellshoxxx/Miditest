@@ -41,6 +41,8 @@ Supported standalone workflows:
 - clock BPM and event-rate statistics
 - controlled Note/CC/Program/Pitch output
 - all-channel panic
+- deterministic physical/virtual MIDI loopback comparison and round-trip timing
+- persistent local baseline save/compare
 - report JSON export
 - capture CSV export
 - high-rate stress/overflow visibility
@@ -123,6 +125,8 @@ The million-event native stress test must demonstrate:
 - all 128 CC numbers detected
 - high-rate measurement remains finite
 - report serialization succeeds after stress
+- real-time callback contains no diagnostic-model mutex acquisition
+- loopback uses fixed-size audio-thread probe state and bounded output queues
 
 No claim of zero event loss is made above the bounded bridge capacity. Overflow must be visible to the user rather than blocking the real-time processing thread.
 
