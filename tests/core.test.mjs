@@ -70,7 +70,7 @@ const diff=baselineDiff(
  {controls:{'1:7':{range:127,jitter:0.2}},keys:[60,61],disconnects:0},
  {controls:{'1:7':{range:100,jitter:2.5}},keys:[60],disconnects:2}
 );
-assert.equal(diff.missingKeys[0],61); assert.equal(diff.disconnectDelta,2); assert.equal(diff.controls['1:7'].rangeDelta,-27);
+assert.equal(diff.missingKeys[0],61); assert.equal(diff.disconnectDelta,2); assert.equal(diff.controls['1:7'].rangeDelta,-27);\nconst drift=baselineDiff({pitch:{center:5},latency:{median:10},messageRate:{peak:50}},{pitch:{center:8},latency:{median:14},messageRate:{peak:75}});\nassert.equal(drift.pitchCenterDelta,3); assert.equal(drift.latencyMedianDelta,4); assert.equal(drift.peakRateDelta,25);
 
 assert.equal(chordName([60,64,67]),'C major');
 assert.equal(chordName([60,63,67]),'C minor');
@@ -83,6 +83,6 @@ const perf=performanceStats([
  {kind:'noteoff',channel:1,a:60,b:0,t:250},
  {kind:'noteon',channel:1,a:64,b:90,t:500}
 ]);
-assert.equal(perf.notes.length,2); assert.equal(perf.notes[0].duration,250); assert.equal(perf.interOnset[0],500);
+assert.equal(perf.notes.length,2); assert.equal(perf.notes[0].duration,250); assert.equal(perf.interOnset[0],500);\nconst chordPerf=performanceStats([{kind:'noteon',channel:1,a:60,b:90,t:0},{kind:'noteon',channel:1,a:64,b:90,t:7},{kind:'noteon',channel:1,a:67,b:90,t:11}]);\nassert.equal(chordPerf.simultaneousGroups.length,1); assert.deepEqual(chordPerf.simultaneousGroups[0].notes,[60,64,67]);
 
 console.log('MIDItest core tests: PASS');
