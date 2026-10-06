@@ -76,7 +76,7 @@ export function classifyEncoder(values=[]){
 export function classifyControl(values=[]){
   if(values.length<6)return 'Insufficient data';
   const {min,max}=minMax(values),unique=new Set(values).size;
-  if(unique<=4&&min<=8&&max>=119)return 'Switch / button candidate';
+  if(unique<=4&&((min===0&&max===127)||(max-min<=1&&min<=1)))return 'Switch / button candidate';
   if(max-min>=32&&unique>4)return 'Continuous control candidate';
   return 'Unclassified control';
 }
