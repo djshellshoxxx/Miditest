@@ -1,44 +1,43 @@
 # MIDItest
 
-**MIDItest by Circuit Drift Labs** is a browser-based MIDI monitor and controller diagnostic bench.
+**MIDItest by Circuit Drift Labs** is a local-first browser MIDI monitor, controller diagnostic bench and technician-oriented troubleshooting workspace.
 
 Live site: https://djshellshoxxx.github.io/Miditest/
 
-Circuit Drift Labs: https://circuitdriftlabs.djshellshoxxx.github.io/
+Circuit Drift Labs: https://djshellshoxxx.github.io/circuitdriftlabs/
 
 ## What it does
 
-MIDItest uses the Web MIDI API to inspect what connected hardware actually sends. It is intended for diagnosing controllers, keyboards, knobs, sliders, wheels, pedals, flaky connections and unexpected MIDI traffic without installing a DAW utility.
+MIDItest uses Web MIDI to show what connected MIDI hardware actually sends. It is designed for musicians, developers and repair/diagnostic work where the useful question is not just “is MIDI arriving?” but “what is arriving, how consistently, on which channel, at what rate, and does the measured behavior change over time?”
 
-Current features include:
+Implemented diagnostics include live decoded/raw monitoring with search and filters; guided controller testing; automatic controller inventory; CC range, coverage, skipped/repeated values, jitter, jumps, reversals and dead-zone analysis; selected-control history graphs and histograms; encoder heuristics; keybed, held-note, duplicate/stuck-note and chord views; aggregate/per-key velocity statistics; channel/poly aftertouch; pitch-bend range/center analysis; mod/expression/sustain inspection; per-channel traffic; flood heuristics; MIDI Learn and editable mapping worksheets; MIDI clock/transport/song-position inspection; note timing measurements; 14-bit CC pair detection; RPN/NRPN tracking; MPE-like activity inspection; optional SysEx capture; device connection logging; controlled Note/CC/Program/Pitch output; channel/all-channel panic; deterministic loopback comparison; browser/MIDI round-trip latency measurements; local baselines; imported-report comparison; and JSON/CSV/print exports.
 
-- live decoded + raw MIDI monitor
-- device input/output selection
-- message counts and messages/second
-- channel activity
-- automatic CC inventory
-- CC range, distinct-value, jitter, jump and direction-change measurements
-- simple encoder-behaviour hints
-- keybed/held-note display
-- pitch-bend range and near-center measurements
-- incoming MIDI-clock BPM measurement
-- MIDI Learn and user-labelled mapping worksheet
-- output Note On/Off tests
-- MIDI panic across all channels
-- connection/disconnection log
-- guided controller-test mode
-- local baseline save/compare
-- JSON diagnostic report export
+MIDItest reports measured observations. It does not turn one browser session into a definitive repair diagnosis.
 
-MIDItest reports what it observed. It does not claim that a control is definitively defective based on one browser session.
+## Interface
+
+The modern workspace is organized into:
+
+- Quick Test
+- Monitor
+- Controls
+- Keyboard
+- Timing
+- Output
+- Mapping
+- Report
+
+The full GUI contract is in `docs/specs/2026-10-06-modern-gui-spec.md`. Functional clarifications and acceptance criteria are in `docs/specs/2026-10-06-complete-functional-spec.md`.
 
 ## Browser support
 
-Hardware access requires a browser exposing Web MIDI and explicit permission from the user. The page detects unsupported browsers and leaves the documentation/interface accessible rather than failing silently.
+Hardware access requires Web MIDI, user permission and a secure context. Current Chromium-based browsers are the primary target. The page remains usable as documentation if Web MIDI is unavailable.
+
+Normal access is requested without SysEx. SysEx is a separate explicit permission action.
 
 ## Privacy
 
-MIDI events, device names and diagnostic data remain in the browser. There is no account or remote diagnostic service.
+MIDI events, device names, mappings, baselines and diagnostic data remain in the browser. MIDItest has no MIDI telemetry backend.
 
 ## Related Circuit Drift Labs tools
 
@@ -57,10 +56,18 @@ The app is static HTML/CSS/JavaScript.
 
 ```bash
 node tests/core.test.mjs
+node tests/ui-static.test.mjs
+node --input-type=module --check < app-v2.js
+node --input-type=module --check < midi-core.js
 ```
 
-The existing GitHub Pages workflow deploys the repository root.
+GitHub Actions runs the core tests, static UI contract and module syntax checks. GitHub Pages deploys only from `main` after the test job succeeds.
 
-## Specification
+## Specifications
 
-See `docs/superpowers/specs/2026-10-01-miditest-design.md` and `docs/superpowers/plans/2026-10-01-miditest-implementation.md`.
+Primary design/specification sources:
+
+- `docs/superpowers/specs/2026-10-01-miditest-design.md`
+- `docs/specs/2026-10-06-modern-gui-spec.md`
+- `docs/specs/2026-10-06-complete-functional-spec.md`
+- `docs/superpowers/plans/2026-10-01-miditest-implementation.md`
