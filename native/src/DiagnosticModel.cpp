@@ -34,7 +34,14 @@ void DiagnosticModel::reset() {
     history_.clear(); oneSecondTimes_.clear(); clockIntervals_.clear();
     messageCounts_.fill(0); channelCounts_.fill(0); controls_.fill({});
     for (auto& ch : activeNotes_) ch.fill(false);
-    notesSeen_.fill(false); velocities_ = {}; pitchCenter_ = {};
+    notesSeen_.fill(false); velocities_ = {}; channelPressure_ = {}; polyPressure_ = {}; pitchCenter_ = {};
+    noteDurationsMs_ = {}; interOnsetMs_ = {}; lastNoteOnSeconds_ = -1.0;
+    for (auto& ch : noteStart_) ch.fill(-1.0);
+    parameterState_.fill({}); parameterEvents_.clear();
+    for (auto& ch : lastCcValue_) ch.fill(0);
+    for (auto& ch : lastCcSeen_) ch.fill(false);
+    for (auto& ch : highResValue_) ch.fill(0);
+    for (auto& ch : highResSeen_) ch.fill(false);
     totalEvents_ = duplicateNoteOns_ = unmatchedNoteOffs_ = 0; controlsSeen_ = 0;
     pitchMin_ = 8191; pitchMax_ = -8192; lastClock_ = -1.0; currentRate_ = peakRate_ = 0.0;
 }
@@ -87,9 +94,16 @@ void DiagnosticModel::ingest(const uint8_t* data, size_t size, double seconds) {
         auto& active = activeNotes_[static_cast<size_t>(e.channel - 1)][static_cast<size_t>(e.a)];
         if (active) ++duplicateNoteOns_;
         active = true; velocities_.push(e.b);
+        auto& start = noteStart_[static_cast<size_t>(e.channel - 1)][static_cast<size_t>(e.a)];
+        start = seconds;
+        if (lastNoteOnSeconds_ >= 0.0) interOnsetMs_.push(static_cast<int>(std::lround((seconds - lastNoteOnSeconds_) * 1000.0)));
+        lastNoteOnSeconds_ = seconds;
     } else if (e.kind == EventKind::NoteOff && validDataIndex) {
         auto& active = activeNotes_[static_cast<size_t>(e.channel - 1)][static_cast<size_t>(e.a)];
-        if (!active) ++unmatchedNoteOffs_; active = false;
+        auto& start = noteStart_[static_cast<size_t>(e.channel - 1)][static_cast<size_t>(e.a)];
+        if (!active) ++unmatchedNoteOffs_;
+        else if (start >= 0.0) noteDurationsMs_.push(static_cast<int>(std::lround((seconds - start) * 1000.0)));
+        active = false; start = -1.0;
     } else if (e.kind == EventKind::ControlChange && validDataIndex) {
         auto& c = controls_[static_cast<size_t>((e.channel - 1) * 128 + e.a)];
         if (c.count == 0) { ++controlsSeen_; c.min = c.max = e.value; }
@@ -103,6 +117,34 @@ void DiagnosticModel::ingest(const uint8_t* data, size_t size, double seconds) {
             c.min = std::min(c.min, e.value); c.max = std::max(c.max, e.value);
         }
         ++c.count; c.last = e.value; c.unique.set(static_cast<size_t>(std::clamp(e.value, 0, 127))); c.recent.push(e.value);
+
+        const auto chIndex = static_cast<size_t>(e.channel - 1);
+        lastCcValue_[chIndex][static_cast<size_t>(e.a)] = e.value;
+        lastCcSeen_[chIndex][static_cast<size_t>(e.a)] = true;
+        if (e.a >= 32 && e.a <= 63) {
+            const int msb = e.a - 32;
+            if (lastCcSeen_[chIndex][static_cast<size_t>(msb)]) {
+                highResValue_[chIndex][static_cast<size_t>(msb)] = (lastCcValue_[chIndex][static_cast<size_t>(msb)] << 7) | e.value;
+                highResSeen_[chIndex][static_cast<size_t>(msb)] = true;
+            }
+        }
+
+        auto& ps = parameterState_[chIndex];
+        if (e.a == 99) { ps.mode = 1; ps.msb = e.value; }
+        else if (e.a == 98) { ps.mode = 1; ps.lsb = e.value; }
+        else if (e.a == 101) { ps.mode = 2; ps.msb = e.value; }
+        else if (e.a == 100) { ps.mode = 2; ps.lsb = e.value; }
+        else if (e.a == 6) ps.dataMsb = e.value;
+        else if (e.a == 38) ps.dataLsb = e.value;
+        if (ps.mode != 0 && ps.msb >= 0 && ps.lsb >= 0 && (e.a == 6 || e.a == 38 || e.a == 96 || e.a == 97)) {
+            ParamEvent pe; pe.nrpn = ps.mode == 1; pe.channel = e.channel; pe.parameter = (ps.msb << 7) | ps.lsb;
+            pe.value14 = (ps.dataMsb << 7) | ps.dataLsb; pe.delta = e.a == 96 ? 1 : (e.a == 97 ? -1 : 0); pe.seconds = seconds;
+            parameterEvents_.push_back(pe); if (parameterEvents_.size() > 128) parameterEvents_.pop_front();
+        }
+    } else if (e.kind == EventKind::ChannelPressure) {
+        channelPressure_.push(e.value);
+    } else if (e.kind == EventKind::PolyPressure) {
+        polyPressure_.push(e.value);
     } else if (e.kind == EventKind::PitchBend) {
         pitchMin_ = std::min(pitchMin_, e.value); pitchMax_ = std::max(pitchMax_, e.value);
         if (std::abs(e.value) < 1024) pitchCenter_.push(e.value);
