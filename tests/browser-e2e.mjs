@@ -22,7 +22,11 @@ const emit=async bytes=>page.evaluate(b=>{
 },bytes);
 
 await emit([0x90,60,25]);
+await emit([0x91,60,35]);
 await emit([0x80,60,0]);
+await page.waitForTimeout(50);
+assert.ok(await page.locator('.key[title="C4"]').evaluate(el=>el.classList.contains('held')),'same pitch remains held on channel 2');
+await emit([0x81,60,0]);
 await emit([0x90,64,120]);
 await emit([0x80,64,0]);
 for(let i=0;i<20;i++)await emit([0xB0,7,Math.round(i*127/19)]);

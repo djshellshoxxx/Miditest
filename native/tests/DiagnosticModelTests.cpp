@@ -55,6 +55,20 @@ static void extendedDiagnosticsTests() {
     CHECK(json.find("\"type\":\"NRPN\"")!=std::string::npos);
 }
 
+static void parameterSelectionAndJsonEscapingTests() {
+    DiagnosticModel m;
+    const uint8_t nrpnMsb[]{0xB0,99,1}, nrpnLsb[]{0xB0,98,2}, nrpnData[]{0xB0,6,64};
+    const uint8_t rpnMsb[]{0xB0,101,0}, rpnLsb[]{0xB0,100,0}, data[]{0xB0,6,12};
+    const uint8_t nullMsb[]{0xB0,101,127}, nullLsb[]{0xB0,100,127}, moreData[]{0xB0,6,13};
+    m.ingest(nrpnMsb,3,0.0); m.ingest(nrpnLsb,3,0.01); m.ingest(nrpnData,3,0.015);
+    m.ingest(rpnMsb,3,0.02); m.ingest(rpnLsb,3,0.03); m.ingest(data,3,0.04);
+    m.ingest(nullMsb,3,0.05); m.ingest(nullLsb,3,0.06); m.ingest(moreData,3,0.07);
+    const auto json=m.reportJson("Device\tname\\line\nnext","test");
+    CHECK(json.find("\\tname\\\\line\\nnext")!=std::string::npos);
+    CHECK(json.find("\"parameterEvents\": 2")!=std::string::npos);
+    CHECK(json.find("\"parameter\":0")!=std::string::npos);
+}
+
 static void sysexBoundTest() {
     DiagnosticModel m; uint8_t bytes[600]{}; bytes[0]=0xF0; bytes[599]=0xF7;
     m.ingest(bytes,600,0.0); const auto e=m.eventsCopy().back();
@@ -93,6 +107,6 @@ static void stressTest() {
 }
 
 int main() {
-    basicProtocolTests(); pairingTests(); clockTests(); extendedDiagnosticsTests(); sysexBoundTest(); malformedDataTest(); stressTest();
+    basicProtocolTests(); pairingTests(); clockTests(); extendedDiagnosticsTests(); parameterSelectionAndJsonEscapingTests(); sysexBoundTest(); malformedDataTest(); stressTest();
     std::cout << "MIDItest native core + stress tests: PASS\n";
 }

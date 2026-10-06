@@ -1,1 +1,51 @@
-name: Test and deploy static content to Pages\n\non:\n  push:\n    branches: ["main"]\n  pull_request:\n    branches: ["main"]\n  workflow_dispatch:\n\npermissions:\n  contents: read\n  pages: write\n  id-token: write\n\nconcurrency:\n  group: "pages-${{ github.ref }}"\n  cancel-in-progress: true\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n      - name: Core diagnostics tests\n        run: node tests/core.test.mjs\n      - name: Static UI contract\n        run: node tests/ui-static.test.mjs\n      - name: Parse browser modules\n        run: |\n          node --input-type=module --check < app-v2.js\n          node --input-type=module --check < midi-core.js\n\n  deploy:\n    if: github.event_name == 'push' && github.ref == 'refs/heads/main'\n    needs: test\n    environment:\n      name: github-pages\n      url: ${{ steps.deployment.outputs.page_url }}\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/configure-pages@v5\n      - uses: actions/upload-pages-artifact@v3\n        with:\n          path: '.'\n      - name: Deploy\n        id: deployment\n        uses: actions/deploy-pages@v5\n
+name: Test and deploy static content to Pages
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Core diagnostics tests
+        run: node tests/core.test.mjs
+      - name: Static UI contract
+        run: node tests/ui-static.test.mjs
+      - name: Parse browser modules
+        run: |
+          node --input-type=module --check < app-v2.js
+          node --input-type=module --check < midi-core.js
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

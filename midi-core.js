@@ -73,6 +73,14 @@ export function classifyEncoder(values=[]){
   return 'Unknown / mixed';
 }
 
+export function classifyControl(values=[]){
+  if(values.length<6)return 'Insufficient data';
+  const {min,max}=minMax(values),unique=new Set(values).size;
+  if(unique<=4&&min<=8&&max>=119)return 'Switch / button candidate';
+  if(max-min>=32&&unique>4)return 'Continuous control candidate';
+  return 'Unclassified control';
+}
+
 export function messageRate(timestamps=[],windowMs=1000){if(!timestamps.length)return 0;const end=timestamps[timestamps.length-1],start=end-windowMs;return timestamps.filter(t=>t>=start).length/(windowMs/1000)}
 export function peakMessageRate(timestamps=[],windowMs=1000){if(!timestamps.length)return 0;let peak=0,l=0;for(let r=0;r<timestamps.length;r++){while(timestamps[r]-timestamps[l]>windowMs)l++;peak=Math.max(peak,(r-l+1)/(windowMs/1000))}return peak}
 
@@ -81,6 +89,16 @@ export function analyzeNotePairs(events=[]){
   for(const e of events){if(e.kind!=='noteon'&&e.kind!=='noteoff')continue;const k=`${e.channel}:${e.a}`;if(e.kind==='noteon'){if(active.has(k))duplicateOns++;else active.set(k,e)}
     else if(!active.has(k))duplicateOffs++;else{const on=active.get(k);completed.push({channel:e.channel,note:e.a,start:on.t,end:e.t,duration:Math.max(0,e.t-on.t),velocity:on.b});active.delete(k)}}
   return {completed,duplicateOns,duplicateOffs,stuck:[...active.values()].map(e=>({channel:e.channel,note:e.a,since:e.t,velocity:e.b}))};
+}
+
+export function heldNoteNumbers(held=[]){
+  return [...new Set([...held].map(key=>Number(String(key).slice(String(key).lastIndexOf(':')+1))).filter(Number.isInteger))].sort((a,b)=>a-b);
+}
+
+export function updateHeldNotes(held,event){
+  if(event.kind==='noteon')held.add(`${event.channel}:${event.a}`);
+  else if(event.kind==='noteoff')held.delete(`${event.channel}:${event.a}`);
+  return held;
 }
 
 export function latencyStats(samples=[]){if(!samples.length)return {count:0,min:null,median:null,mean:null,max:null,stdev:null};const {min,max}=minMax(samples);return {count:samples.length,min,median:median(samples),mean:Number(mean(samples).toFixed(3)),max,stdev:Number(stdev(samples).toFixed(3))}}
@@ -114,8 +132,14 @@ export function createParameterTracker(){return {channels:new Map()}}
 export function processParameterMessage(tracker,e){
   if(!tracker||e.kind!=='cc'||!e.channel)return null;if(!tracker.channels.has(e.channel))tracker.channels.set(e.channel,{mode:null,msb:null,lsb:null,dataMsb:0,dataLsb:0});
   const s=tracker.channels.get(e.channel);
-  if(e.a===99){s.mode='NRPN';s.msb=e.value;return null} if(e.a===98){s.mode='NRPN';s.lsb=e.value;return null}
-  if(e.a===101){s.mode='RPN';s.msb=e.value;return null} if(e.a===100){s.mode='RPN';s.lsb=e.value;return null}
+  if(e.a===99||e.a===98||e.a===101||e.a===100){
+    const mode=e.a===99||e.a===98?'NRPN':'RPN';
+    if(s.mode!==mode){s.msb=null;s.lsb=null}
+    s.mode=mode;
+    if(e.a===99||e.a===101)s.msb=e.value;else s.lsb=e.value;
+    if(s.msb===127&&s.lsb===127)s.mode=null;
+    return null;
+  }
   if(e.a===6){s.dataMsb=e.value} else if(e.a===38){s.dataLsb=e.value} else if(e.a!==96&&e.a!==97)return null;
   if(s.mode&&s.msb!==null&&s.lsb!==null){return {type:s.mode,channel:e.channel,parameter:(s.msb<<7)|s.lsb,value14:(s.dataMsb<<7)|s.dataLsb,increment:e.a===96?1:e.a===97?-1:0}}
   return null;

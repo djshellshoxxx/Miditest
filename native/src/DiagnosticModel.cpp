@@ -27,6 +27,7 @@ const char* kindName(EventKind k) {
         case EventKind::ActiveSense: return "Active Sense"; case EventKind::SysEx: return "SysEx";
         case EventKind::System: return "System"; case EventKind::Count: return "Count";
     }
+    return "Unknown";
 }
 
 void DiagnosticModel::reset() {
@@ -130,11 +131,13 @@ void DiagnosticModel::ingest(const uint8_t* data, size_t size, double seconds) {
         }
 
         auto& ps = parameterState_[chIndex];
-        if (e.a == 99) { ps.mode = 1; ps.msb = e.value; }
-        else if (e.a == 98) { ps.mode = 1; ps.lsb = e.value; }
-        else if (e.a == 101) { ps.mode = 2; ps.msb = e.value; }
-        else if (e.a == 100) { ps.mode = 2; ps.lsb = e.value; }
-        else if (e.a == 6) ps.dataMsb = e.value;
+        if (e.a == 99 || e.a == 98 || e.a == 101 || e.a == 100) {
+            const int mode = e.a == 99 || e.a == 98 ? 1 : 2;
+            if (ps.mode != mode) { ps.msb = -1; ps.lsb = -1; }
+            ps.mode = mode;
+            if (e.a == 99 || e.a == 101) ps.msb = e.value; else ps.lsb = e.value;
+            if (ps.msb == 127 && ps.lsb == 127) { ps.mode = 0; ps.msb = -1; ps.lsb = -1; }
+        } else if (e.a == 6) ps.dataMsb = e.value;
         else if (e.a == 38) ps.dataLsb = e.value;
         if (ps.mode != 0 && ps.msb >= 0 && ps.lsb >= 0 && (e.a == 6 || e.a == 38 || e.a == 96 || e.a == 97)) {
             ParamEvent pe; pe.nrpn = ps.mode == 1; pe.channel = e.channel; pe.parameter = (ps.msb << 7) | ps.lsb;
@@ -192,7 +195,22 @@ ControlStats DiagnosticModel::control(int channel, int cc) const {
 std::vector<Event> DiagnosticModel::eventsCopy() const { std::lock_guard<std::mutex> lock(mutex_); return {history_.begin(), history_.end()}; }
 
 static std::string jsonEscape(const std::string& s) {
-    std::ostringstream o; for (char c : s) { if (c == '"' || c == '\\') o << '\\' << c; else if (c == '\n') o << "\\n"; else o << c; } return o.str();
+    std::ostringstream o;
+    for (unsigned char c : s) {
+        switch (c) {
+            case '"': o << "\\\""; break;
+            case '\\': o << "\\\\"; break;
+            case '\b': o << "\\b"; break;
+            case '\f': o << "\\f"; break;
+            case '\n': o << "\\n"; break;
+            case '\r': o << "\\r"; break;
+            case '\t': o << "\\t"; break;
+            default:
+                if (c < 0x20) o << "\\u00" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << std::dec;
+                else o << static_cast<char>(c);
+        }
+    }
+    return o.str();
 }
 std::string DiagnosticModel::reportJson(const std::string& device, const std::string& mode) const {
     const auto s = snapshot(); std::ostringstream o; o << std::fixed << std::setprecision(3);
@@ -225,7 +243,9 @@ std::string DiagnosticModel::reportJson(const std::string& device, const std::st
     o << "],\n  \"highResolution\": [";
     first = true;
     for (int ch = 0; ch < 16; ++ch) for (int msb = 0; msb < 32; ++msb) if (highResSeen_[static_cast<size_t>(ch)][static_cast<size_t>(msb)]) {
-        if (!first) o << ','; o << "{\"channel\":" << (ch + 1) << ",\"msbCc\":" << msb << ",\"lsbCc\":" << (msb + 32) << ",\"value14\":" << highResValue_[static_cast<size_t>(ch)][static_cast<size_t>(msb)] << "}"; first = false;
+        if (!first) o << ',';
+        o << "{\"channel\":" << (ch + 1) << ",\"msbCc\":" << msb << ",\"lsbCc\":" << (msb + 32) << ",\"value14\":" << highResValue_[static_cast<size_t>(ch)][static_cast<size_t>(msb)] << "}";
+        first = false;
     }
     o << "],\n  \"parameters\": [";
     first = true; for (const auto& pe : parameterEvents_) { if (!first) o << ','; o << "{\"type\":\"" << (pe.nrpn ? "NRPN" : "RPN") << "\",\"channel\":" << pe.channel << ",\"parameter\":" << pe.parameter << ",\"value14\":" << pe.value14 << ",\"delta\":" << pe.delta << "}"; first = false; }
