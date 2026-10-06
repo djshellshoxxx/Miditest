@@ -58,7 +58,7 @@ export function clockStats(timestamps=[]){
   if(timestamps.length<2)return {count:timestamps.length,bpm:null,intervalMean:null,jitter:null,peakJitter:null};
   const diffs=[];for(let i=1;i<timestamps.length;i++){const d=timestamps[i]-timestamps[i-1];if(d>0&&d<500)diffs.push(d)}
   const m=mean(diffs),dev=diffs.map(x=>Math.abs(x-m));
-  return {count:timestamps.length,bpm:clockBpm(timestamps),intervalMean:m===null?null:Number(m.toFixed(3)),jitter:dev.length?Number(mean(dev).toFixed(3)):null,peakJitter:dev.length?Number(Math.max(...dev).toFixed(3)):null};
+  const histogram=Array(12).fill(0);if(diffs.length){const lo=Math.min(...diffs),hi=Math.max(...diffs),span=Math.max(0.0001,hi-lo);for(const d of diffs)histogram[Math.min(11,Math.floor((d-lo)/span*12))]++}return {count:timestamps.length,bpm:clockBpm(timestamps),intervalMean:m===null?null:Number(m.toFixed(3)),jitter:dev.length?Number(mean(dev).toFixed(3)):null,peakJitter:dev.length?Number(Math.max(...dev).toFixed(3)):null,intervalMin:diffs.length?Math.min(...diffs):null,intervalMax:diffs.length?Math.max(...diffs):null,histogram};
 }
 
 export function classifyEncoder(values=[]){
@@ -124,7 +124,7 @@ export function baselineDiff(oldReport={},curReport={}){
   const oldKeys=oldReport.keys||[],curKeys=curReport.keys||[],controls={};
   const keys=new Set([...Object.keys(oldReport.controls||{}),...Object.keys(curReport.controls||{})]);
   for(const k of keys){const a=oldReport.controls?.[k]||{},b=curReport.controls?.[k]||{};controls[k]={rangeDelta:(b.range??0)-(a.range??0),jitterDelta:Number(((b.jitter??0)-(a.jitter??0)).toFixed(2)),missing:!curReport.controls?.[k],new:!oldReport.controls?.[k]}}
-  return {missingKeys:oldKeys.filter(k=>!curKeys.includes(k)),newKeys:curKeys.filter(k=>!oldKeys.includes(k)),disconnectDelta:(curReport.disconnects||0)-(oldReport.disconnects||0),controls};
+  return {missingKeys:oldKeys.filter(k=>!curKeys.includes(k)),newKeys:curKeys.filter(k=>!oldKeys.includes(k)),disconnectDelta:(curReport.disconnects||0)-(oldReport.disconnects||0),controls,pitchCenterDelta:(curReport.pitch?.center??0)-(oldReport.pitch?.center??0),latencyMedianDelta:(curReport.latency?.median??0)-(oldReport.latency?.median??0),peakRateDelta:(curReport.messageRate?.peak??0)-(oldReport.messageRate?.peak??0)};
 }
 
 export function chordName(notes=[]){
@@ -139,8 +139,8 @@ export function channelStats(events=[]){
 
 export function performanceStats(events=[]){
   const pair=analyzeNotePairs(events),ons=events.filter(e=>e.kind==='noteon').sort((a,b)=>a.t-b.t),inter=[];for(let i=1;i<ons.length;i++)inter.push(ons[i].t-ons[i-1].t);
-  const byKey={};for(const e of ons){if(!byKey[e.a])byKey[e.a]=[];byKey[e.a].push(e.b)}
-  return {notes:ons.map(e=>{const p=pair.completed.find(x=>x.channel===e.channel&&x.note===e.a&&x.start===e.t);return {note:e.a,channel:e.channel,velocity:e.b,t:e.t,duration:p?.duration??null}}),interOnset:inter,velocityByKey:Object.fromEntries(Object.entries(byKey).map(([k,v])=>[k,velocityStats(v)])),held:pair.stuck};
+  const byKey={},groups=[];for(const e of ons){if(!byKey[e.a])byKey[e.a]=[];byKey[e.a].push(e.b);const g=groups.at(-1);if(g&&e.t-g.start<=12){g.notes.push(e.a);g.spread=e.t-g.start}else groups.push({start:e.t,spread:0,notes:[e.a]})}
+  return {notes:ons.map(e=>{const p=pair.completed.find(x=>x.channel===e.channel&&x.note===e.a&&x.start===e.t);return {note:e.a,channel:e.channel,velocity:e.b,t:e.t,duration:p?.duration??null}}),interOnset:inter,simultaneousGroups:groups.filter(g=>g.notes.length>1),velocityByKey:Object.fromEntries(Object.entries(byKey).map(([k,v])=>[k,velocityStats(v)])),held:pair.stuck};
 }
 
 export function reportSummary(state){return {version:2,device:state.device||'',started:state.started||null,durationMs:state.started?Date.now()-state.started:0,eventCount:state.events?.length||0,keys:[...(state.keys||[])].sort((a,b)=>a-b),channels:[...(state.channels||[])].sort((a,b)=>a-b),messageCounts:state.messageCounts||{},disconnects:state.disconnects||0,controls:state.controls||{},pitch:state.pitch||{}}}
