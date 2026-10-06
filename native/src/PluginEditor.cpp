@@ -12,12 +12,12 @@ juce::String noteName(int n) {
 
 MidiTestEditor::MidiTestEditor(MidiTestProcessor& p) : AudioProcessorEditor(&p), processor_(p) {
     setResizable(true,true); setResizeLimits(760,520,1800,1200); setSize(1120,720);
-    title_.setText("MIDItest",juce::dontSendNotification); title_.setFont(juce::FontOptions(28.0f,juce::Font::bold));
+    title_.setText("MIDItest",juce::dontSendNotification); title_.setFont(juce::Font{juce::FontOptions(28.0f,juce::Font::bold)});
     status_.setColour(juce::Label::textColourId,juce::Colour(0xff9fb2c4));
     for (size_t i=0;i<tabs_.size();++i) { tabs_[i].setButtonText(tabNames[static_cast<int>(i)]); tabs_[i].onClick=[this,i]{setTab(static_cast<int>(i));}; addAndMakeVisible(tabs_[i]); }
     juce::Component* components[]{&title_,&status_,&body_,&reset_,&exportReport_,&exportCsv_,&help_,&noteOn_,&noteOff_,&sendCc_,&sendProgram_,&sendPitch_,&panic_,&channel_,&note_,&velocity_,&cc_,&ccValue_,&program_,&pitch_,&mappingLabel_,&addMapping_};
     for(auto* component:components) addAndMakeVisible(component);
-    body_.setMultiLine(true); body_.setReadOnly(true); body_.setScrollbarsShown(true); body_.setFont(juce::FontOptions(13.0f).withTypefaceStyle("Regular"));
+    body_.setMultiLine(true); body_.setReadOnly(true); body_.setScrollbarsShown(true); body_.setFont(juce::Font{juce::FontOptions(13.0f)});
     body_.setColour(juce::TextEditor::backgroundColourId,juce::Colour(0xff081019)); body_.setColour(juce::TextEditor::textColourId,juce::Colour(0xffe9f0f6)); body_.setColour(juce::TextEditor::outlineColourId,juce::Colour(0xff263545));
     mappingLabel_.setTextToShowWhenEmpty("Mapping label, e.g. Filter cutoff",juce::Colour(0xff748698));
     for(auto* l:{&statEvents_,&statRate_,&statKeys_,&statControls_}) { addAndMakeVisible(l); l->setJustificationType(juce::Justification::centred); l->setColour(juce::Label::backgroundColourId,juce::Colour(0xff111b26)); }
@@ -31,7 +31,7 @@ MidiTestEditor::MidiTestEditor(MidiTestProcessor& p) : AudioProcessorEditor(&p),
     panic_.onClick=[this]{processor_.panicAll();};
     exportReport_.onClick=[this]{chooseSave("miditest-native-report.json",juce::String(processor_.model().reportJson("Host/Standalone MIDI","native")));};
     exportCsv_.onClick=[this]{chooseSave("miditest-native-capture.csv",juce::String(processor_.model().captureCsv()));};
-    help_.onClick=[this]{juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon,"MIDItest Help","Standalone: use Options > Audio/MIDI Settings to select physical MIDI devices.\n\nCLAP: MIDItest observes events supplied by the host.\n\nRun Quick Test by sweeping keys, controls, pitch, pedals and pressure. Controls reports measured range, repeated values, jumps, direction reversals and variation. Output sends controlled test MIDI. Export report saves JSON; Export capture saves raw/decoded CSV.\n\nQueue drop counters indicate traffic exceeded the bounded real-time bridge; they are never hidden.");};
+    help_.onClick=[] { juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon,"MIDItest Help","Standalone: use Options > Audio/MIDI Settings to select physical MIDI devices.\n\nCLAP: MIDItest observes events supplied by the host.\n\nRun Quick Test by sweeping keys, controls, pitch, pedals and pressure. Controls reports measured range, repeated values, jumps, direction reversals and variation. Output sends controlled test MIDI. Export report saves JSON; Export capture saves raw/decoded CSV.\n\nQueue drop counters indicate traffic exceeded the bounded real-time bridge; they are never hidden.");};
     addMapping_.onClick=[this]{const auto events=processor_.model().eventsCopy();if(events.empty())return;const auto&e=events.back();juce::String msg=juce::String(miditest::kindName(e.kind))+" / Ch "+juce::String(e.channel)+" / A "+juce::String(e.a)+" / value "+juce::String(e.value);auto label=mappingLabel_.getText().trim();if(label.isEmpty())label="Unlabeled";mappings_.push_back({msg,label});mappingLabel_.clear();refresh();};
     for(auto* b:{&reset_,&exportReport_,&exportCsv_,&help_,&noteOn_,&noteOff_,&sendCc_,&sendProgram_,&sendPitch_,&panic_,&addMapping_}) b->setColour(juce::TextButton::buttonColourId,juce::Colour(0xff10202e));
     reset_.setTooltip("Reset the current diagnostic session."); exportReport_.setTooltip("Save a JSON diagnostic report."); exportCsv_.setTooltip("Save the bounded event capture as CSV."); help_.setTooltip("Open MIDItest usage and routing help.");
