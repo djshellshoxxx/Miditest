@@ -1,0 +1,63 @@
+name: Full QA and native builds
+
+on:
+  push:
+    branches: ["main", "codex/miditest-native-clap-qa"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tests/core.test.mjs
+      - run: node tests/ui-static.test.mjs
+      - run: node tests/stress.test.mjs
+      - run: |
+          node --input-type=module --check < app-v2.js
+          node --input-type=module --check < midi-core.js
+
+  native-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libasound2-dev libjack-jackd2-dev libfreetype6-dev libfontconfig1-dev libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev libglu1-mesa-dev mesa-common-dev
+      - name: Configure
+        run: cmake -S native -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release -DMIDITEST_BUILD_PLUGIN=ON -DMIDITEST_BUILD_TESTS=ON
+      - name: Build
+        run: cmake --build build/native --config Release --parallel 2
+      - name: Native unit and million-event stress tests
+        run: ctest --test-dir build/native --output-on-failure -C Release
+      - name: Locate native products
+        shell: bash
+        run: find build/native -type f -o -type d | grep -E 'MidiTestNative|\.clap$' | tail -80
+      - name: Install CLAP validator
+        run: cargo install clap-validator --locked
+      - name: Validate CLAP
+        shell: bash
+        run: |
+          CLAP_PATH="$(find build/native -name '*.clap' | head -1)"
+          test -n "$CLAP_PATH"
+          clap-validator validate "$CLAP_PATH"
+      - name: Upload native artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MIDItest-${{ runner.os }}-Release
+          path: build/native/MidiTestNative_artefacts/Release/
+          if-no-files-found: error
