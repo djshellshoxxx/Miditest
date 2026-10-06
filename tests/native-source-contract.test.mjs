@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const src=readFileSync(new URL('../native/src/PluginProcessor.cpp',import.meta.url),'utf8');
+const header=readFileSync(new URL('../native/src/PluginProcessor.h',import.meta.url),'utf8');
+assert.doesNotMatch(src,/inputFifo_\.write\(1\)\.startIndex1/);
+assert.match(src,/auto scope = inputFifo_\.write\(1\);/);
+assert.match(src,/scope\.blockSize1 > 0/);
+assert.match(src,/droppedInput_/);
+assert.match(src,/loopbackResetRequested_/);
+assert.match(header,/std::array<LoopbackProbe, 6>/);
+assert.match(src,/handleLoopbackInput/);
+const processBlock=src.slice(src.indexOf('void MidiTestProcessor::processBlock'),src.indexOf('void MidiTestProcessor::timerCallback'));
+assert.doesNotMatch(processBlock,/model_\.ingest/);
+assert.doesNotMatch(processBlock,/std::mutex|lock_guard|unique_lock/);
+console.log('MIDItest native source contracts: PASS');

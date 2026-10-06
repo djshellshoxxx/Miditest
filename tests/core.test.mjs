@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {
-  noteName,decodeMessage,controlStats,pitchStats,clockBpm,classifyEncoder,messageRate,
+  noteName,decodeMessage,controlStats,pitchStats,clockBpm,classifyEncoder,classifyControl,messageRate,
   velocityStats,latencyStats,analyzeNotePairs,compareLoopback,detectFloods,deadZones,
   analyzeCcPairs,createParameterTracker,processParameterMessage,baselineDiff,
-  chordName,channelStats,performanceStats
+  chordName,channelStats,performanceStats,heldNoteNumbers,updateHeldNotes
 } from '../midi-core.js';
 
 assert.equal(noteName(60),'C4');
@@ -30,6 +30,9 @@ const ticks=Array.from({length:48},(_,i)=>i*(60000/120/24));
 assert.ok(Math.abs(clockBpm(ticks)-120)<0.01);
 assert.equal(classifyEncoder(Array.from({length:32},(_,i)=>i)),'Absolute 0–127');
 assert.match(classifyEncoder([1,1,127,1,127,127,1,127]),/relative/i);
+assert.equal(classifyControl([0,127,0,127,0,127]),'Switch / button candidate');
+assert.notEqual(classifyControl([1,127,1,127,1,127]),'Switch / button candidate');
+assert.equal(classifyControl([0,20,40,60,80,100,127]),'Continuous control candidate');
 assert.equal(messageRate([0,100,200,900],1000),4);
 
 const vs=velocityStats([1,20,64,100,127]);
@@ -65,12 +68,28 @@ processParameterMessage(tracker,{kind:'cc',channel:1,a:99,value:1});
 processParameterMessage(tracker,{kind:'cc',channel:1,a:98,value:2});
 const nrpn=processParameterMessage(tracker,{kind:'cc',channel:1,a:6,value:64});
 assert.equal(nrpn.type,'NRPN'); assert.equal(nrpn.parameter,130); assert.equal(nrpn.value14,8192);
+processParameterMessage(tracker,{kind:'cc',channel:1,a:101,value:0});
+processParameterMessage(tracker,{kind:'cc',channel:1,a:100,value:0});
+const rpn=processParameterMessage(tracker,{kind:'cc',channel:1,a:6,value:12});
+assert.equal(rpn.type,'RPN'); assert.equal(rpn.parameter,0);
+processParameterMessage(tracker,{kind:'cc',channel:1,a:101,value:127});
+processParameterMessage(tracker,{kind:'cc',channel:1,a:100,value:127});
+assert.equal(processParameterMessage(tracker,{kind:'cc',channel:1,a:6,value:13}),null);
+const heldByChannel=new Set();
+updateHeldNotes(heldByChannel,{kind:'noteon',channel:1,a:60});
+updateHeldNotes(heldByChannel,{kind:'noteon',channel:2,a:60});
+updateHeldNotes(heldByChannel,{kind:'noteoff',channel:1,a:60});
+assert.deepEqual(heldNoteNumbers(heldByChannel),[60]);
+updateHeldNotes(heldByChannel,{kind:'noteoff',channel:2,a:60});
+assert.deepEqual(heldNoteNumbers(heldByChannel),[]);
 
 const diff=baselineDiff(
  {controls:{'1:7':{range:127,jitter:0.2}},keys:[60,61],disconnects:0},
  {controls:{'1:7':{range:100,jitter:2.5}},keys:[60],disconnects:2}
 );
-assert.equal(diff.missingKeys[0],61); assert.equal(diff.disconnectDelta,2); assert.equal(diff.controls['1:7'].rangeDelta,-27);\nconst drift=baselineDiff({pitch:{center:5},latency:{median:10},messageRate:{peak:50}},{pitch:{center:8},latency:{median:14},messageRate:{peak:75}});\nassert.equal(drift.pitchCenterDelta,3); assert.equal(drift.latencyMedianDelta,4); assert.equal(drift.peakRateDelta,25);
+assert.equal(diff.missingKeys[0],61); assert.equal(diff.disconnectDelta,2); assert.equal(diff.controls['1:7'].rangeDelta,-27);
+const drift=baselineDiff({pitch:{center:5},latency:{median:10},messageRate:{peak:50}},{pitch:{center:8},latency:{median:14},messageRate:{peak:75}});
+assert.equal(drift.pitchCenterDelta,3); assert.equal(drift.latencyMedianDelta,4); assert.equal(drift.peakRateDelta,25);
 
 assert.equal(chordName([60,64,67]),'C major');
 assert.equal(chordName([60,63,67]),'C minor');
@@ -83,6 +102,8 @@ const perf=performanceStats([
  {kind:'noteoff',channel:1,a:60,b:0,t:250},
  {kind:'noteon',channel:1,a:64,b:90,t:500}
 ]);
-assert.equal(perf.notes.length,2); assert.equal(perf.notes[0].duration,250); assert.equal(perf.interOnset[0],500);\nconst chordPerf=performanceStats([{kind:'noteon',channel:1,a:60,b:90,t:0},{kind:'noteon',channel:1,a:64,b:90,t:7},{kind:'noteon',channel:1,a:67,b:90,t:11}]);\nassert.equal(chordPerf.simultaneousGroups.length,1); assert.deepEqual(chordPerf.simultaneousGroups[0].notes,[60,64,67]);
+assert.equal(perf.notes.length,2); assert.equal(perf.notes[0].duration,250); assert.equal(perf.interOnset[0],500);
+const chordPerf=performanceStats([{kind:'noteon',channel:1,a:60,b:90,t:0},{kind:'noteon',channel:1,a:64,b:90,t:7},{kind:'noteon',channel:1,a:67,b:90,t:11}]);
+assert.equal(chordPerf.simultaneousGroups.length,1); assert.deepEqual(chordPerf.simultaneousGroups[0].notes,[60,64,67]);
 
 console.log('MIDItest core tests: PASS');

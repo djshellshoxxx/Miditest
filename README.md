@@ -71,3 +71,27 @@ Primary design/specification sources:
 - `docs/specs/2026-10-06-modern-gui-spec.md`
 - `docs/specs/2026-10-06-complete-functional-spec.md`
 - `docs/superpowers/plans/2026-10-01-miditest-implementation.md`
+
+
+## Native Linux, macOS and CLAP
+
+MIDItest now also has a native C++/JUCE implementation under `native/`.
+
+Targets:
+
+- macOS Standalone
+- Linux Standalone
+- macOS CLAP
+- Linux CLAP
+
+The Standalone builds are intended for direct MIDI-device troubleshooting through JUCE's Audio/MIDI settings. The CLAP build diagnoses MIDI supplied by the DAW/host and returns generated test MIDI to the host.
+
+Build and test:
+
+```bash
+cmake -S native -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native --config Release --parallel
+ctest --test-dir build/native --output-on-failure
+```
+
+Cross-platform CI additionally runs a one-million-event native stress test and validates the produced CLAP with `clap-validator`. See `native/README.md` and `docs/specs/2026-10-06-native-clap-linux-macos-spec.md`.

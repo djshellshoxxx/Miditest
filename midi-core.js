@@ -25,6 +25,7 @@ export function decodeMessage(data){
 export function mean(values=[]){return values.length?values.reduce((a,b)=>a+b,0)/values.length:null}
 export function median(values=[]){if(!values.length)return null;const a=[...values].sort((x,y)=>x-y),m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
 export function stdev(values=[]){if(!values.length)return null;const m=mean(values);return Math.sqrt(values.reduce((s,v)=>s+(v-m)**2,0)/values.length)}
+function minMax(values){let min=Infinity,max=-Infinity;for(const v of values){if(v<min)min=v;if(v>max)max=v}return {min,max}}
 
 export function deadZones(values=[],expectedMax=127,minGap=4){
   const sorted=[...new Set(values)].filter(v=>Number.isFinite(v)).sort((a,b)=>a-b),out=[];
@@ -35,7 +36,7 @@ export function deadZones(values=[],expectedMax=127,minGap=4){
 
 export function controlStats(values=[]){
   if(!values.length)return {count:0,min:null,max:null,range:0,coverage:0,unique:0,skipped:0,repeated:0,jitter:0,jumps:0,reversals:0,deadZones:[],eventRate:0};
-  const min=Math.min(...values),max=Math.max(...values);let jumps=0,reversals=0,lastDir=0,repeated=0;
+  const {min,max}=minMax(values);let jumps=0,reversals=0,lastDir=0,repeated=0;
   for(let i=1;i<values.length;i++){const delta=values[i]-values[i-1];if(Math.abs(delta)>12)jumps++;if(delta===0)repeated++;const dir=Math.sign(delta);if(dir&&lastDir&&dir!==lastDir)reversals++;if(dir)lastDir=dir}
   const tail=values.slice(-Math.min(20,values.length)),j=stdev(tail)||0,unique=new Set(values).size;
   return {count:values.length,min,max,range:max-min,coverage:Number(((max-min)/127*100).toFixed(1)),unique,skipped:Math.max(0,(max-min+1)-unique),repeated,jitter:Number(j.toFixed(2)),jumps,reversals,deadZones:deadZones(values)};
@@ -44,12 +45,12 @@ export function controlStats(values=[]){
 export function velocityStats(values=[]){
   if(!values.length)return {count:0,min:null,max:null,mean:null,median:null,stdev:null,range:0,histogram:Array(8).fill(0)};
   const hist=Array(8).fill(0);for(const v of values)hist[Math.min(7,Math.floor(Math.max(0,v)/16))]++;
-  return {count:values.length,min:Math.min(...values),max:Math.max(...values),mean:Number(mean(values).toFixed(2)),median:median(values),stdev:Number(stdev(values).toFixed(2)),range:Math.max(...values)-Math.min(...values),histogram:hist};
+  const {min,max}=minMax(values);return {count:values.length,min,max,mean:Number(mean(values).toFixed(2)),median:median(values),stdev:Number(stdev(values).toFixed(2)),range:max-min,histogram:hist};
 }
 
 export function pitchStats(values=[]){
   if(!values.length)return {count:0,min:null,max:null,center:null,centerSpread:null,negativeTravel:0,positiveTravel:0,asymmetry:null};
-  const min=Math.min(...values),max=Math.max(...values),near=values.filter(v=>Math.abs(v)<1024),center=mean(near),spread=stdev(near),neg=Math.abs(Math.min(0,min)),pos=Math.max(0,max);
+  const {min,max}=minMax(values),near=values.filter(v=>Math.abs(v)<1024),center=mean(near),spread=stdev(near),neg=Math.abs(Math.min(0,min)),pos=Math.max(0,max);
   return {count:values.length,min,max,center:center===null?null:Math.round(center),centerSpread:spread===null?null:Math.round(spread),negativeTravel:neg,positiveTravel:pos,asymmetry:Math.abs(neg-pos)};
 }
 
@@ -58,18 +59,26 @@ export function clockStats(timestamps=[]){
   if(timestamps.length<2)return {count:timestamps.length,bpm:null,intervalMean:null,jitter:null,peakJitter:null};
   const diffs=[];for(let i=1;i<timestamps.length;i++){const d=timestamps[i]-timestamps[i-1];if(d>0&&d<500)diffs.push(d)}
   const m=mean(diffs),dev=diffs.map(x=>Math.abs(x-m));
-  const histogram=Array(12).fill(0);if(diffs.length){const lo=Math.min(...diffs),hi=Math.max(...diffs),span=Math.max(0.0001,hi-lo);for(const d of diffs)histogram[Math.min(11,Math.floor((d-lo)/span*12))]++}return {count:timestamps.length,bpm:clockBpm(timestamps),intervalMean:m===null?null:Number(m.toFixed(3)),jitter:dev.length?Number(mean(dev).toFixed(3)):null,peakJitter:dev.length?Number(Math.max(...dev).toFixed(3)):null,intervalMin:diffs.length?Math.min(...diffs):null,intervalMax:diffs.length?Math.max(...diffs):null,histogram};
+  const histogram=Array(12).fill(0);let intervalMin=null,intervalMax=null,peakJitter=null;if(diffs.length){const bounds=minMax(diffs),lo=bounds.min,hi=bounds.max,span=Math.max(0.0001,hi-lo);intervalMin=lo;intervalMax=hi;for(const d of diffs)histogram[Math.min(11,Math.floor((d-lo)/span*12))]++}if(dev.length)peakJitter=minMax(dev).max;return {count:timestamps.length,bpm:clockBpm(timestamps),intervalMean:m===null?null:Number(m.toFixed(3)),jitter:dev.length?Number(mean(dev).toFixed(3)):null,peakJitter:peakJitter===null?null:Number(peakJitter.toFixed(3)),intervalMin,intervalMax,histogram};
 }
 
 export function classifyEncoder(values=[]){
   if(values.length<4)return 'Insufficient data';
-  const min=Math.min(...values),max=Math.max(...values),set=new Set(values);
+  const {min,max}=minMax(values),set=new Set(values);
   if(min>=0&&max<=127&&set.size>16)return 'Absolute 0–127';
   const count=v=>values.filter(x=>x===v).length/values.length;
   if(count(1)+count(127)>.7)return 'Likely relative two\'s complement / increment-decrement';
   if(count(1)+count(65)>.7)return 'Likely relative binary offset';
   if(count(63)+count(65)>.7)return 'Likely relative sign/magnitude';
   return 'Unknown / mixed';
+}
+
+export function classifyControl(values=[]){
+  if(values.length<6)return 'Insufficient data';
+  const {min,max}=minMax(values),unique=new Set(values).size;
+  if(unique<=4&&((min===0&&max===127)||(max-min<=1&&min<=1)))return 'Switch / button candidate';
+  if(max-min>=32&&unique>4)return 'Continuous control candidate';
+  return 'Unclassified control';
 }
 
 export function messageRate(timestamps=[],windowMs=1000){if(!timestamps.length)return 0;const end=timestamps[timestamps.length-1],start=end-windowMs;return timestamps.filter(t=>t>=start).length/(windowMs/1000)}
@@ -82,7 +91,17 @@ export function analyzeNotePairs(events=[]){
   return {completed,duplicateOns,duplicateOffs,stuck:[...active.values()].map(e=>({channel:e.channel,note:e.a,since:e.t,velocity:e.b}))};
 }
 
-export function latencyStats(samples=[]){if(!samples.length)return {count:0,min:null,median:null,mean:null,max:null,stdev:null};return {count:samples.length,min:Math.min(...samples),median:median(samples),mean:Number(mean(samples).toFixed(3)),max:Math.max(...samples),stdev:Number(stdev(samples).toFixed(3))}}
+export function heldNoteNumbers(held=[]){
+  return [...new Set([...held].map(key=>Number(String(key).slice(String(key).lastIndexOf(':')+1))).filter(Number.isInteger))].sort((a,b)=>a-b);
+}
+
+export function updateHeldNotes(held,event){
+  if(event.kind==='noteon')held.add(`${event.channel}:${event.a}`);
+  else if(event.kind==='noteoff')held.delete(`${event.channel}:${event.a}`);
+  return held;
+}
+
+export function latencyStats(samples=[]){if(!samples.length)return {count:0,min:null,median:null,mean:null,max:null,stdev:null};const {min,max}=minMax(samples);return {count:samples.length,min,median:median(samples),mean:Number(mean(samples).toFixed(3)),max,stdev:Number(stdev(samples).toFixed(3))}}
 
 export function compareLoopback(sent=[],received=[]){
   const recv=received.map(x=>({bytes:[...x],used:false}));let matched=0,altered=0;
@@ -113,8 +132,14 @@ export function createParameterTracker(){return {channels:new Map()}}
 export function processParameterMessage(tracker,e){
   if(!tracker||e.kind!=='cc'||!e.channel)return null;if(!tracker.channels.has(e.channel))tracker.channels.set(e.channel,{mode:null,msb:null,lsb:null,dataMsb:0,dataLsb:0});
   const s=tracker.channels.get(e.channel);
-  if(e.a===99){s.mode='NRPN';s.msb=e.value;return null} if(e.a===98){s.mode='NRPN';s.lsb=e.value;return null}
-  if(e.a===101){s.mode='RPN';s.msb=e.value;return null} if(e.a===100){s.mode='RPN';s.lsb=e.value;return null}
+  if(e.a===99||e.a===98||e.a===101||e.a===100){
+    const mode=e.a===99||e.a===98?'NRPN':'RPN';
+    if(s.mode!==mode){s.msb=null;s.lsb=null}
+    s.mode=mode;
+    if(e.a===99||e.a===101)s.msb=e.value;else s.lsb=e.value;
+    if(s.msb===127&&s.lsb===127)s.mode=null;
+    return null;
+  }
   if(e.a===6){s.dataMsb=e.value} else if(e.a===38){s.dataLsb=e.value} else if(e.a!==96&&e.a!==97)return null;
   if(s.mode&&s.msb!==null&&s.lsb!==null){return {type:s.mode,channel:e.channel,parameter:(s.msb<<7)|s.lsb,value14:(s.dataMsb<<7)|s.dataLsb,increment:e.a===96?1:e.a===97?-1:0}}
   return null;
