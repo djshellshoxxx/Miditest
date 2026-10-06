@@ -40,6 +40,9 @@ public:
     void sendProgram(int channel, int program);
     void sendPitchBend(int channel, int value);
     void panicAll();
+    void startLoopbackTest();
+    struct LoopbackSnapshot { int sent{}; int matched{}; int missing{}; double minMs{}; double meanMs{}; double maxMs{}; bool active{}; };
+    LoopbackSnapshot loopbackSnapshot() const;
 
 private:
     struct QueuedEvent {
@@ -50,7 +53,14 @@ private:
     };
     struct OutputEvent {
         uint8_t size{};
+        int8_t probeId{-1};
         std::array<uint8_t, 3> bytes{};
+    };
+    struct LoopbackProbe {
+        uint8_t size{};
+        std::array<uint8_t, 3> bytes{};
+        double sentSeconds{-1.0};
+        bool matched{};
     };
 
     static constexpr int queueCapacity = 16384;
@@ -60,9 +70,16 @@ private:
     juce::AbstractFifo outputFifo_{1024};
     miditest::DiagnosticModel model_;
     std::atomic<uint64_t> droppedInput_{0}, droppedOutput_{0};
+    std::array<LoopbackProbe, 6> loopbackProbes_{};
+    std::atomic<bool> loopbackResetRequested_{false}, loopbackActive_{false};
+    std::atomic<int> loopbackSent_{0}, loopbackMatched_{0}, loopbackMissing_{0};
+    std::atomic<double> loopbackLatencySumMs_{0.0}, loopbackLatencyMinMs_{0.0}, loopbackLatencyMaxMs_{0.0};
+    double loopbackLastSentSeconds_{-1.0};
     double sampleRate_{44100.0};
     double streamSeconds_{0.0};
 
     void timerCallback() override;
+    void queueProbeMessage(int probeId, uint8_t status, uint8_t a, uint8_t b, uint8_t size);
+    void handleLoopbackInput(const uint8_t* data, int size, double seconds);
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiTestProcessor)
 };
