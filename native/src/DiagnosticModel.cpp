@@ -170,6 +170,12 @@ Snapshot DiagnosticModel::snapshot() const {
     for (size_t note = 0; note < 128; ++note) for (size_t ch = 0; ch < 16; ++ch) if (activeNotes_[ch][note]) s.heldNotes[note] = true;
     s.pitchMin = pitchMin_ == 8191 ? 0 : pitchMin_; s.pitchMax = pitchMax_ == -8192 ? 0 : pitchMax_;
     s.pitchCenterMean = pitchCenter_.mean; s.pitchCenterStdev = pitchCenter_.stdev(); s.currentRate = currentRate_; s.peakRate = peakRate_;
+    if (velocities_.count) { s.velocityMin = velocities_.min; s.velocityMax = velocities_.max; s.velocityMean = velocities_.mean; s.velocityStdev = velocities_.stdev(); }
+    if (channelPressure_.count) { s.channelPressureMin = channelPressure_.min; s.channelPressureMax = channelPressure_.max; s.channelPressureMean = channelPressure_.mean; s.channelPressureStdev = channelPressure_.stdev(); }
+    if (polyPressure_.count) { s.polyPressureMin = polyPressure_.min; s.polyPressureMax = polyPressure_.max; s.polyPressureMean = polyPressure_.mean; s.polyPressureStdev = polyPressure_.stdev(); }
+    s.noteDurationMeanMs = noteDurationsMs_.mean; s.noteDurationStdevMs = noteDurationsMs_.stdev(); s.interOnsetMeanMs = interOnsetMs_.mean;
+    s.parameterEvents = parameterEvents_.size();
+    for (const auto& ch : highResSeen_) for (bool seen : ch) if (seen) ++s.highResolutionPairs;
     if (!clockIntervals_.empty()) {
         auto v = std::vector<double>(clockIntervals_.begin(), clockIntervals_.end());
         const auto mid = v.begin() + static_cast<std::ptrdiff_t>(v.size() / 2); std::nth_element(v.begin(), mid, v.end());
@@ -190,12 +196,40 @@ static std::string jsonEscape(const std::string& s) {
 }
 std::string DiagnosticModel::reportJson(const std::string& device, const std::string& mode) const {
     const auto s = snapshot(); std::ostringstream o; o << std::fixed << std::setprecision(3);
-    o << "{\n  \"version\": 1,\n  \"mode\": \"" << jsonEscape(mode) << "\",\n  \"device\": \"" << jsonEscape(device) << "\",";
+    o << "{\n  \"version\": 2,\n  \"mode\": \"" << jsonEscape(mode) << "\",\n  \"device\": \"" << jsonEscape(device) << "\",";
     o << "\n  \"events\": " << s.totalEvents << ",\n  \"historyEvents\": " << s.historyEvents << ",\n  \"controlsSeen\": " << s.controlsSeen;
     o << ",\n  \"duplicateNoteOns\": " << s.duplicateNoteOns << ",\n  \"unmatchedNoteOffs\": " << s.unmatchedNoteOffs;
+    o << ",\n  \"velocity\": {\"min\": " << s.velocityMin << ", \"max\": " << s.velocityMax << ", \"mean\": " << s.velocityMean << ", \"stdev\": " << s.velocityStdev << "}";
+    o << ",\n  \"aftertouch\": {\"channelMin\": " << s.channelPressureMin << ", \"channelMax\": " << s.channelPressureMax << ", \"channelMean\": " << s.channelPressureMean << ", \"channelStdev\": " << s.channelPressureStdev << ", \"polyMin\": " << s.polyPressureMin << ", \"polyMax\": " << s.polyPressureMax << ", \"polyMean\": " << s.polyPressureMean << ", \"polyStdev\": " << s.polyPressureStdev << "}";
+    o << ",\n  \"timing\": {\"noteDurationMeanMs\": " << s.noteDurationMeanMs << ", \"noteDurationStdevMs\": " << s.noteDurationStdevMs << ", \"interOnsetMeanMs\": " << s.interOnsetMeanMs << "}";
     o << ",\n  \"pitch\": {\"min\": " << s.pitchMin << ", \"max\": " << s.pitchMax << ", \"centerMean\": " << s.pitchCenterMean << ", \"centerStdev\": " << s.pitchCenterStdev << "}";
     o << ",\n  \"clockBpm\": " << s.clockBpm << ",\n  \"messageRate\": {\"current\": " << s.currentRate << ", \"peak\": " << s.peakRate << "}";
-    o << "\n}\n"; return o.str();
+    o << ",\n  \"parameterEvents\": " << s.parameterEvents << ",\n  \"highResolutionPairs\": " << s.highResolutionPairs;
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    o << ",\n  \"notesSeen\": [";
+    bool first = true; for (size_t n = 0; n < notesSeen_.size(); ++n) if (notesSeen_[n]) { if (!first) o << ','; o << n; first = false; }
+    o << "],\n  \"channels\": {";
+    first = true; for (size_t ch = 0; ch < channelCounts_.size(); ++ch) if (channelCounts_[ch]) { if (!first) o << ','; o << "\"" << (ch + 1) << "\":" << channelCounts_[ch]; first = false; }
+    o << "},\n  \"messageCounts\": {";
+    first = true; for (size_t i = 0; i < messageCounts_.size(); ++i) if (messageCounts_[i]) { if (!first) o << ','; o << "\"" << kindName(static_cast<EventKind>(i)) << "\":" << messageCounts_[i]; first = false; }
+    o << "},\n  \"controls\": [";
+    first = true;
+    for (int ch = 1; ch <= 16; ++ch) for (int cc = 0; cc < 128; ++cc) {
+        const auto& ctl = controls_[static_cast<size_t>((ch - 1) * 128 + cc)];
+        if (!ctl.count) continue;
+        if (!first) o << ',';
+        o << "{\"channel\":" << ch << ",\"cc\":" << cc << ",\"count\":" << ctl.count << ",\"min\":" << ctl.min << ",\"max\":" << ctl.max << ",\"coverage\":" << ctl.coverage() << ",\"unique\":" << ctl.unique.count() << ",\"repeated\":" << ctl.repeated << ",\"jumps\":" << ctl.jumps << ",\"reversals\":" << ctl.reversals << ",\"stdev\":" << ctl.recent.stdev() << "}";
+        first = false;
+    }
+    o << "],\n  \"highResolution\": [";
+    first = true;
+    for (int ch = 0; ch < 16; ++ch) for (int msb = 0; msb < 32; ++msb) if (highResSeen_[static_cast<size_t>(ch)][static_cast<size_t>(msb)]) {
+        if (!first) o << ','; o << "{\"channel\":" << (ch + 1) << ",\"msbCc\":" << msb << ",\"lsbCc\":" << (msb + 32) << ",\"value14\":" << highResValue_[static_cast<size_t>(ch)][static_cast<size_t>(msb)] << "}"; first = false;
+    }
+    o << "],\n  \"parameters\": [";
+    first = true; for (const auto& pe : parameterEvents_) { if (!first) o << ','; o << "{\"type\":\"" << (pe.nrpn ? "NRPN" : "RPN") << "\",\"channel\":" << pe.channel << ",\"parameter\":" << pe.parameter << ",\"value14\":" << pe.value14 << ",\"delta\":" << pe.delta << "}"; first = false; }
+    o << "]\n}\n"; return o.str();
 }
 std::string DiagnosticModel::captureCsv() const {
     const auto events = eventsCopy(); std::ostringstream o; o << "seconds,type,channel,a,b,value,bytes\n";
