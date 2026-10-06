@@ -31,6 +31,7 @@ assert.ok(Math.abs(clockBpm(ticks)-120)<0.01);
 assert.equal(classifyEncoder(Array.from({length:32},(_,i)=>i)),'Absolute 0–127');
 assert.match(classifyEncoder([1,1,127,1,127,127,1,127]),/relative/i);
 assert.equal(classifyControl([0,127,0,127,0,127]),'Switch / button candidate');
+assert.notEqual(classifyControl([1,127,1,127,1,127]),'Switch / button candidate');
 assert.equal(classifyControl([0,20,40,60,80,100,127]),'Continuous control candidate');
 assert.equal(messageRate([0,100,200,900],1000),4);
 
