@@ -81,15 +81,16 @@ void DiagnosticModel::ingest(const uint8_t* data, size_t size, double seconds) {
     if (e.channel >= 1 && e.channel <= 16) ++channelCounts_[static_cast<size_t>(e.channel - 1)];
     updateRate(seconds);
 
-    if (e.kind == EventKind::NoteOn) {
+    const bool validDataIndex = e.a >= 0 && e.a <= 127 && e.channel >= 1 && e.channel <= 16;
+    if (e.kind == EventKind::NoteOn && validDataIndex) {
         notesSeen_[static_cast<size_t>(e.a)] = true;
         auto& active = activeNotes_[static_cast<size_t>(e.channel - 1)][static_cast<size_t>(e.a)];
         if (active) ++duplicateNoteOns_;
         active = true; velocities_.push(e.b);
-    } else if (e.kind == EventKind::NoteOff) {
+    } else if (e.kind == EventKind::NoteOff && validDataIndex) {
         auto& active = activeNotes_[static_cast<size_t>(e.channel - 1)][static_cast<size_t>(e.a)];
         if (!active) ++unmatchedNoteOffs_; active = false;
-    } else if (e.kind == EventKind::ControlChange) {
+    } else if (e.kind == EventKind::ControlChange && validDataIndex) {
         auto& c = controls_[static_cast<size_t>((e.channel - 1) * 128 + e.a)];
         if (c.count == 0) { ++controlsSeen_; c.min = c.max = e.value; }
         else {
