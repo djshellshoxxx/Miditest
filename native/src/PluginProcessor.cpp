@@ -19,9 +19,9 @@ void MidiTestProcessor::processBlock(juce::AudioBuffer<float>& audio, juce::Midi
         const auto msg = metadata.getMessage();
         const auto* raw = msg.getRawData();
         const auto size = static_cast<uint32_t>(msg.getRawDataSize());
-        const int slot = inputFifo_.write(1).startIndex1;
-        if (slot >= 0) {
-            auto& q = inputQueue_[static_cast<size_t>(slot)];
+        auto scope = inputFifo_.write(1);
+        if (scope.blockSize1 > 0) {
+            auto& q = inputQueue_[static_cast<size_t>(scope.startIndex1)];
             q.seconds = blockStart + static_cast<double>(metadata.samplePosition) / sampleRate_;
             q.originalSize = size;
             q.storedSize = static_cast<uint16_t>(std::min<uint32_t>(size, static_cast<uint32_t>(q.bytes.size())));
