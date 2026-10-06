@@ -37,6 +37,17 @@ static void sysexBoundTest() {
     CHECK(e.kind==EventKind::SysEx); CHECK(e.originalBytes==600); CHECK(e.storedBytes==256);
 }
 
+static void malformedDataTest() {
+    DiagnosticModel m;
+    const uint8_t badNote[]{0x90,0xFF,100};
+    const uint8_t badCc[]{0xB0,0xFE,64};
+    m.ingest(badNote,3,0.0);
+    m.ingest(badCc,3,0.1);
+    const auto s=m.snapshot();
+    CHECK(s.totalEvents==2);
+    CHECK(s.controlsSeen==0);
+}
+
 static void stressTest() {
     DiagnosticModel m; double t=0.0;
     for (int i=0;i<1000000;++i) {
@@ -58,6 +69,6 @@ static void stressTest() {
 }
 
 int main() {
-    basicProtocolTests(); pairingTests(); clockTests(); sysexBoundTest(); stressTest();
+    basicProtocolTests(); pairingTests(); clockTests(); sysexBoundTest(); malformedDataTest(); stressTest();
     std::cout << "MIDItest native core + stress tests: PASS\n";
 }
