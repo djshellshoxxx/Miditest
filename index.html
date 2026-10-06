@@ -1,42 +1,135 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="MIDItest by Circuit Drift Labs — local browser MIDI monitoring and controller diagnostics."><meta name="theme-color" content="#07101a"><title>MIDItest — Circuit Drift Labs</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./styles.css">  <!-- SEO: Circuit Drift Labs -->
-  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-  <link rel="canonical" href="https://djshellshoxxx.github.io/Miditest/">
-  <meta property="og:site_name" content="Circuit Drift Labs">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="MIDItest — Circuit Drift Labs">
-  <meta property="og:description" content="MIDItest by Circuit Drift Labs — local browser MIDI monitoring and controller diagnostics.">
-  <meta property="og:url" content="https://djshellshoxxx.github.io/Miditest/">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="MIDItest — Circuit Drift Labs">
-  <meta name="twitter:description" content="MIDItest by Circuit Drift Labs — local browser MIDI monitoring and controller diagnostics.">
-  <link rel="home" href="https://djshellshoxxx.github.io/circuitdriftlabs/">
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "MIDItest — Circuit Drift Labs",
-    "url": "https://djshellshoxxx.github.io/Miditest/",
-    "description": "MIDItest by Circuit Drift Labs — local browser MIDI monitoring and controller diagnostics.",
-    "isPartOf": {
-      "@type": "WebSite",
-      "name": "Circuit Drift Labs",
-      "url": "https://djshellshoxxx.github.io/circuitdriftlabs/"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Circuit Drift Labs",
-      "url": "https://djshellshoxxx.github.io/circuitdriftlabs/"
-    }
-  }
-  </script>
-</head><body>
-<header class="top"><a class="brand" href="https://djshellshoxxx.github.io/circuitdriftlabs/"><span>CD</span> Circuit Drift Labs</a><nav><a href="https://djshellshoxxx.github.io/trackstats/">TrackStats</a><a href="https://djshellshoxxx.github.io/TranspositionCalc/">Transposition</a><a href="https://djshellshoxxx.github.io/loudnessbatch/">LoudnessBatch</a></nav></header>
-<main><section class="hero"><p class="eyebrow">MIDI DIAGNOSTIC BENCH</p><h1>MIDItest</h1><p>See exactly what your controller sends, profile noisy controls, test keys, velocity, pedals and pitch bend, inspect channels and traffic, and export a diagnostic report. Everything stays in your browser.</p><div class="hero-actions"><button id="connect" class="primary">Enable MIDI</button><button id="guided">Start Guided Test</button><button id="clear">Clear Session</button></div><p id="support" class="support"></p></section>
-<section class="panel devicebar"><label>Input<select id="input"><option value="">No input selected</option></select></label><label>Output<select id="output"><option value="">No output selected</option></select></label><label>Monitor<select id="typeFilter"><option value="">All messages</option><option value="noteon">Notes</option><option value="cc">CC</option><option value="pitchbend">Pitch Bend</option><option value="clock">Clock</option></select></label><label class="check"><input id="pause" type="checkbox"> Pause monitor</label></section>
-<section class="stats" id="summary"></section>
-<section class="grid two"><article class="panel"><div class="section-head"><div><h2>Live MIDI Monitor</h2><p>Decoded event stream with raw bytes.</p></div><button id="clearLog">Clear log</button></div><div class="monitor" id="monitor"></div></article><article class="panel"><h2>Message statistics</h2><div id="messageStats" class="meters"></div><h3>Channel activity</h3><div id="channels" class="meters"></div></article></section>
-<section class="grid three"><article class="panel"><h2>Control diagnostics</h2><p>Move knobs/sliders through their full travel, then leave them still briefly.</p><div id="controls"></div></article><article class="panel"><h2>Keybed</h2><p id="keySummary">No notes observed.</p><div id="keyboard" class="keyboard"></div><h3>Held notes</h3><div id="held" class="tags"></div></article><article class="panel"><h2>Pitch bend & pedal</h2><div class="bend"><div id="bendNeedle"></div></div><div id="pitchStats"></div><h3>MIDI clock</h3><p id="clock">No stable clock observed.</p></article></section>
-<section class="grid two"><article class="panel"><h2>MIDI Learn / Mapping</h2><p>Touch one control and label it for your worksheet.</p><div id="learn" class="learn">Waiting for a message…</div><div class="mapping-add"><input id="mappingLabel" placeholder="Label, e.g. Filter cutoff"><button id="addMapping">Add mapping</button></div><table><thead><tr><th>Message</th><th>Label</th><th></th></tr></thead><tbody id="mappingRows"></tbody></table></article><article class="panel"><h2>Output tools</h2><div class="output-grid"><label>Channel<input id="outChannel" type="number" min="1" max="16" value="1"></label><label>Note<input id="outNote" type="number" min="0" max="127" value="60"></label><label>Velocity<input id="outVelocity" type="number" min="1" max="127" value="100"></label><button id="noteOn">Note On</button><button id="noteOff">Note Off</button><button id="panic" class="danger">MIDI Panic</button></div><p class="muted">Panic sends All Sound Off, Reset All Controllers and All Notes Off on all 16 channels.</p><h3>Connection log</h3><div id="connections" class="connection-log"></div></article></section>
-<section class="panel report"><div><h2>Diagnostic report</h2><p>Export measured observations. MIDItest deliberately reports suspicious behavior rather than declaring hardware failed.</p></div><div><button id="saveBaseline">Save baseline</button><button id="compareBaseline">Compare baseline</button><button id="exportReport" class="primary">Export JSON report</button></div><pre id="reportPreview"></pre></section>
-<section class="related"><a href="https://djshellshoxxx.github.io/trackstats/"><strong>TrackStats</strong><span>Analyze your music library.</span></a><a href="https://djshellshoxxx.github.io/TranspositionCalc/"><strong>Transposition Calculator</strong><span>Key, BPM and sample matching.</span></a><a href="https://djshellshoxxx.github.io/loudnessbatch/"><strong>LoudnessBatch</strong><span>Analyze mixes and references.</span></a></section></main>
-<footer>MIDItest by <a href="https://djshellshoxxx.github.io/circuitdriftlabs/">Circuit Drift Labs</a><br><span>Experiments: <a href="https://djshellshoxxx.github.io/binerualwebeats/">Binaural Web Beats</a> · <a href="https://djshellshoxxx.github.io/babbleforge/">BabbleForge</a></span></footer><script type="module" src="./app-v2.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="MIDItest by Circuit Drift Labs — local browser MIDI monitoring and controller diagnostics.">
+<meta name="theme-color" content="#07101a">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<link rel="canonical" href="https://djshellshoxxx.github.io/Miditest/">
+<link rel="home" href="https://djshellshoxxx.github.io/circuitdriftlabs/">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="stylesheet" href="./styles.css">
+<title>MIDItest — Circuit Drift Labs</title>
+</head>
+<body>
+<header class="appbar">
+  <a class="brand" href="https://djshellshoxxx.github.io/circuitdriftlabs/" aria-label="Circuit Drift Labs home"><span class="mark">CD</span><span><strong>MIDItest</strong><small>Circuit Drift Labs</small></span></a>
+  <div class="app-actions"><span id="midiStatus" class="status-pill">MIDI not enabled</span><button id="connect" class="primary">Enable MIDI</button><button id="helpBtn">Help</button></div>
+</header>
+
+<main>
+<section class="sessionbar panel">
+  <label>Input<select id="input"><option value="">No input selected</option></select></label>
+  <label>Output<select id="output"><option value="">No output selected</option></select></label>
+  <label>Preset<select id="preset"><option>Generic MIDI Device</option><option>Keyboard Controller</option><option>Pad Controller</option><option>DJ Controller</option><option>Foot Controller</option><option>Hardware Synth</option></select></label>
+  <div class="session-actions"><button id="enableSysex">Enable SysEx</button><button id="pause">Pause</button><button id="clear">Clear session</button><span id="elapsed">00:00</span></div>
+  <p id="support" class="support" aria-live="polite"></p>
+</section>
+
+<nav class="tabs" aria-label="Diagnostic views">
+  <button class="tab active" data-view="quick">Quick Test</button><button class="tab" data-view="monitorView">Monitor</button><button class="tab" data-view="controlsView">Controls</button><button class="tab" data-view="keyboardView">Keyboard</button><button class="tab" data-view="timingView">Timing</button><button class="tab" data-view="outputView">Output</button><button class="tab" data-view="mappingView">Mapping</button><button class="tab" data-view="reportView">Report</button>
+</nav>
+
+<section id="quick" class="view active-view">
+  <div class="hero panel">
+    <div><p class="eyebrow">MIDI DIAGNOSTIC BENCH</p><h1>Inspect the signal, not the guess.</h1><p>Run a guided controller check, inspect raw MIDI, isolate suspicious controls, compare baselines and export technician-friendly evidence.</p></div>
+    <div class="guided-box"><button id="guided" class="primary">Start Guided Test</button><div><strong id="guidedTitle">Ready</strong><p id="guidedText">Enable MIDI and select an input, or use the monitor directly.</p></div><div class="guided-actions"><button id="guidedBack">Back</button><button id="guidedSkip">Skip</button><button id="guidedNext">Next</button></div></div>
+  </div>
+  <section id="summary" class="stats"></section>
+  <div class="grid two">
+    <article class="panel"><div class="section-head"><div><h2>Findings</h2><p>Measured observations that may deserve attention.</p></div></div><div id="findings" class="findings"></div></article>
+    <article class="panel"><h2>Observed inventory</h2><div id="inventory"></div></article>
+  </div>
+</section>
+
+<section id="monitorView" class="view">
+  <article class="panel monitor-panel">
+    <div class="section-head"><div><h2>Live MIDI Monitor</h2><p>Decoded events and raw bytes. Capture remains local.</p></div><div class="action-row"><button id="exportCaptureCsv">CSV</button><button id="exportCaptureJson">JSON</button></div></div>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search messages">
+      <select id="deviceFilter"><option value="">All devices</option></select>
+      <select id="channelFilter"><option value="">All channels</option><option value="1">Channel 1</option><option value="2">Channel 2</option><option value="3">Channel 3</option><option value="4">Channel 4</option><option value="5">Channel 5</option><option value="6">Channel 6</option><option value="7">Channel 7</option><option value="8">Channel 8</option><option value="9">Channel 9</option><option value="10">Channel 10</option><option value="11">Channel 11</option><option value="12">Channel 12</option><option value="13">Channel 13</option><option value="14">Channel 14</option><option value="15">Channel 15</option><option value="16">Channel 16</option></select>
+      <select id="typeFilter"><option value="">All types</option><option value="noteon">Note On</option><option value="noteoff">Note Off</option><option value="cc">CC</option><option value="pitchbend">Pitch Bend</option><option value="aftertouch">Channel Pressure</option><option value="polyaftertouch">Poly Pressure</option><option value="program">Program</option><option value="clock">Clock</option><option value="sysex">SysEx</option></select>
+      <select id="displayMode"><option value="decoded">Decoded + raw</option><option value="decodedOnly">Decoded</option><option value="raw">Raw only</option></select>
+      <label class="check"><input id="autoscroll" type="checkbox" checked> Auto-scroll</label>
+      <button id="clearLog">Clear view</button>
+    </div>
+    <div class="monitor-wrap"><table class="event-table"><thead><tr><th>Time</th><th>Device</th><th>Ch</th><th>Type</th><th>Message</th><th>Value</th><th>Decimal</th><th>Hex</th></tr></thead><tbody id="monitor"></tbody></table></div>
+  </article>
+  <div class="grid two">
+    <article class="panel"><h2>Message statistics</h2><div id="messageStats"></div></article>
+    <article class="panel"><h2>Channel activity</h2><div id="channels"></div></article>
+  </div>
+</section>
+
+<section id="controlsView" class="view">
+  <div class="grid controls-layout">
+    <article class="panel"><div class="section-head"><div><h2>Detected controls</h2><p>Select a CC to inspect.</p></div></div><div id="controls"></div></article>
+    <article class="panel"><div class="section-head"><div><h2>Control detail</h2><p id="controlTitle">No control selected.</p></div><button id="isolateControl">Reset selected capture</button></div><div id="controlDetail"></div><canvas id="controlGraph" width="900" height="220" aria-label="Selected control value over time"></canvas><div id="controlHistogram" class="histogram"></div></article>
+  </div>
+  <div class="grid three"><article class="panel"><h2>Pedals & expression</h2><div id="pedalStats"></div></article><article class="panel"><h2>Aftertouch</h2><div id="aftertouchStats"></div></article><article class="panel"><h2>High resolution / parameters</h2><div id="hiresStats"></div></article></div>
+</section>
+
+<section id="keyboardView" class="view">
+  <div class="grid two">
+    <article class="panel"><div class="section-head"><div><h2>Keybed</h2><p id="keySummary">No notes observed.</p></div></div><div class="expect-row"><label>Lowest<input id="expectedLow" type="number" min="0" max="127" placeholder="optional"></label><label>Highest<input id="expectedHigh" type="number" min="0" max="127" placeholder="optional"></label><label>Keys<input id="expectedCount" type="number" min="1" max="128" placeholder="optional"></label><button id="applyExpected">Apply</button></div><div id="keyboard" class="keyboard"></div><h3>Held notes / chord</h3><div id="held" class="tags"></div><div id="notePairStats"></div></article>
+    <article class="panel"><h2>Velocity diagnostics</h2><div id="velocityStats"></div><div id="velocityHistogram" class="histogram"></div><h3>Per-key velocity</h3><div id="perKeyVelocity" class="compact-table"></div></article>
+  </div>
+</section>
+
+<section id="timingView" class="view">
+  <div class="grid two">
+    <article class="panel"><h2>MIDI clock</h2><div id="clock"></div><h3>Performance timing</h3><div id="performanceStats"></div></article>
+    <article class="panel"><h2>Traffic anomalies</h2><div id="floods"></div></article>
+  </div>
+  <div class="grid two">
+    <article class="panel"><div class="section-head"><div><h2>Loopback test</h2><p>Physically or virtually route selected MIDI OUT back to selected MIDI IN.</p></div><button id="runLoopback" class="primary">Run loopback</button></div><div id="loopbackStats"></div></article>
+    <article class="panel"><h2>Round-trip latency</h2><p class="muted">Browser-to-MIDI-loopback round trip. This is not DAW/driver latency.</p><div id="latencyStats"></div><div id="latencyHistogram" class="histogram"></div></article>
+  </div>
+</section>
+
+<section id="outputView" class="view">
+  <article class="panel">
+    <h2>MIDI Output Tester</h2>
+    <div class="output-grid">
+      <label>Channel<input id="outChannel" type="number" min="1" max="16" value="1"></label>
+      <label>Note<input id="outNote" type="number" min="0" max="127" value="60"></label>
+      <label>Velocity<input id="outVelocity" type="number" min="0" max="127" value="100"></label>
+      <button id="noteOn">Note On</button><button id="noteOff">Note Off</button>
+      <label>CC<input id="outCc" type="number" min="0" max="127" value="1"></label>
+      <label>CC value<input id="outCcValue" type="number" min="0" max="127" value="64"></label>
+      <button id="sendCc">Send CC</button>
+      <label>Program<input id="outProgram" type="number" min="0" max="127" value="0"></label><button id="sendProgram">Program Change</button>
+      <label>Pitch bend<input id="outPitch" type="number" min="-8192" max="8191" value="0"></label><button id="sendPitch">Pitch Bend</button>
+      <button id="panicChannel" class="danger">Panic channel</button><button id="panicAll" class="danger">Panic all</button>
+    </div>
+    <h3>Connection log</h3><pre id="connections" class="connection-log"></pre>
+  </article>
+</section>
+
+<section id="mappingView" class="view">
+  <div class="grid two">
+    <article class="panel"><h2>MIDI Learn</h2><div id="learn" class="learn">Waiting for a message…</div><div class="action-row"><button id="copyLearn">Copy summary</button></div><div class="mapping-add"><input id="mappingLabel" placeholder="Label, e.g. Filter cutoff"><button id="addMapping" class="primary">Add mapping</button></div></article>
+    <article class="panel"><div class="section-head"><div><h2>Mapping worksheet</h2></div><div class="action-row"><button id="exportMappingCsv">CSV</button><button id="exportMappingJson">JSON</button><button id="printMapping">Print</button></div></div><table><thead><tr><th>Message</th><th>Label</th><th></th></tr></thead><tbody id="mappingRows"></tbody></table></article>
+  </div>
+</section>
+
+<section id="reportView" class="view">
+  <article class="panel report">
+    <div class="section-head"><div><h2>Diagnostic Report</h2><p>Evidence-focused summary, baseline comparison and exports.</p></div><div class="action-row"><button id="saveBaseline">Save baseline</button><label class="file-btn">Import report<input id="importReport" type="file" accept=".json,application/json"></label><button id="compareBaseline">Compare</button><button id="clearLocal">Clear local data</button></div></div>
+    <div id="reportHuman"></div>
+    <div class="action-row"><button id="exportReport" class="primary">Export JSON</button><button id="exportReportCsv">Export CSV</button><button id="printReport">Print</button></div>
+    <details><summary>Raw report JSON</summary><pre id="reportPreview"></pre></details>
+  </article>
+</section>
+
+<section class="related panel"><h2>Related Circuit Drift Labs tools</h2><div><a href="https://djshellshoxxx.github.io/trackstats/">TrackStats</a><a href="https://djshellshoxxx.github.io/TranspositionCalc/">Transposition Calculator</a><a href="https://djshellshoxxx.github.io/loudnessbatch/">LoudnessBatch</a></div><h3>Experiments</h3><div><a href="https://djshellshoxxx.github.io/binerualwebeats/">Binaural Web Beats</a><a href="https://djshellshoxxx.github.io/babbleforge/">BabbleForge</a></div></section>
+</main>
+
+<dialog id="helpDialog"><form method="dialog"><div class="section-head"><div><h2>MIDItest Help</h2></div><button>Close</button></div><h3>Getting started</h3><p>Use a Chromium-based browser on a secure page. Enable MIDI, choose an input, then use Quick Test or Monitor.</p><h3>SysEx</h3><p>System Exclusive access is requested separately because browsers require an additional permission. MIDItest only displays observed bytes and does not interpret proprietary payloads.</p><h3>Diagnostics</h3><p>Range, jitter, jumps, dead zones and duplicate messages are measured observations. They are evidence for troubleshooting, not automatic hardware-failure diagnoses.</p><h3>Loopback</h3><p>Connect or route the selected output back to the selected input before starting. Latency is browser/MIDI round-trip timing.</p><h3>Privacy</h3><p>Capture, mappings and reports stay in the browser. MIDItest contains no MIDI telemetry backend.</p></form></dialog>
+
+<footer>MIDItest by <a href="https://djshellshoxxx.github.io/circuitdriftlabs/">Circuit Drift Labs</a></footer>
+<script type="module" src="./app-v2.js"></script>
+</body>
+</html>
