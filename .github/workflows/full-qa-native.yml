@@ -26,6 +26,16 @@ jobs:
       - run: node tests/ui-static.test.mjs
       - run: node tests/stress.test.mjs
       - run: node tests/native-source-contract.test.mjs
+      - name: Install browser QA runtime
+        run: |
+          npm install --no-save playwright@1.55.1
+          npx playwright install --with-deps chromium
+      - name: Web MIDI browser end-to-end QA
+        run: |
+          python3 -m http.server 4173 >/tmp/miditest-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          node tests/browser-e2e.mjs
       - run: |
           node --input-type=module --check < app-v2.js
           node --input-type=module --check < midi-core.js
