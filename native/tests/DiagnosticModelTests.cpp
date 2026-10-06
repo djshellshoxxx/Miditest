@@ -31,6 +31,30 @@ static void clockTests() {
     CHECK(std::abs(m.snapshot().clockBpm-120.0)<0.01);
 }
 
+static void extendedDiagnosticsTests() {
+    DiagnosticModel m;
+    const uint8_t on[]{0x90,60,90}, off[]{0x80,60,0};
+    const uint8_t cp[]{0xD0,64}, pp[]{0xA0,60,70};
+    const uint8_t msb[]{0xB0,1,64}, lsb[]{0xB0,33,1};
+    const uint8_t nrpnMsb[]{0xB0,99,1}, nrpnLsb[]{0xB0,98,2}, data[]{0xB0,6,64};
+    m.ingest(on,3,0.0); m.ingest(off,3,0.25);
+    m.ingest(on,3,0.50); m.ingest(off,3,0.75);
+    m.ingest(cp,2,0.8); m.ingest(pp,3,0.9);
+    m.ingest(msb,3,1.0); m.ingest(lsb,3,1.01);
+    m.ingest(nrpnMsb,3,1.1); m.ingest(nrpnLsb,3,1.11); m.ingest(data,3,1.12);
+    const auto s=m.snapshot();
+    CHECK(s.velocityMin==90 && s.velocityMax==90);
+    CHECK(s.noteDurationMeanMs==250.0);
+    CHECK(s.interOnsetMeanMs==500.0);
+    CHECK(s.channelPressureMin==64 && s.channelPressureMax==64);
+    CHECK(s.polyPressureMin==70 && s.polyPressureMax==70);
+    CHECK(s.highResolutionPairs>=1);
+    CHECK(s.parameterEvents>=1);
+    const auto json=m.reportJson("Device","test");
+    CHECK(json.find("\"highResolutionPairs\": 1")!=std::string::npos);
+    CHECK(json.find("\"type\":\"NRPN\"")!=std::string::npos);
+}
+
 static void sysexBoundTest() {
     DiagnosticModel m; uint8_t bytes[600]{}; bytes[0]=0xF0; bytes[599]=0xF7;
     m.ingest(bytes,600,0.0); const auto e=m.eventsCopy().back();
@@ -69,6 +93,6 @@ static void stressTest() {
 }
 
 int main() {
-    basicProtocolTests(); pairingTests(); clockTests(); sysexBoundTest(); malformedDataTest(); stressTest();
+    basicProtocolTests(); pairingTests(); clockTests(); extendedDiagnosticsTests(); sysexBoundTest(); malformedDataTest(); stressTest();
     std::cout << "MIDItest native core + stress tests: PASS\n";
 }
