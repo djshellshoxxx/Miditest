@@ -7,7 +7,7 @@ Native MIDItest uses the same JUCE processor/editor code for:
 - macOS CLAP
 - Linux CLAP
 
-The Standalone build receives MIDI from the MIDI input selected by JUCE's standalone device configuration and can emit output test messages through the selected output route. The CLAP build analyzes MIDI/note events delivered by the host and passes input MIDI through unchanged; output-test messages are emitted back to the host.
+The Standalone build receives MIDI from the MIDI input selected by JUCE's standalone device configuration and can emit output test messages through the selected output route. It also supports deterministic MIDI loopback/round-trip timing and a persistent local diagnostic baseline. The CLAP build analyzes MIDI/note events delivered by the host and passes input MIDI through unchanged; output-test messages are emitted back to the host.
 
 ## Build
 
