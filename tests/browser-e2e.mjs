@@ -12,6 +12,7 @@ await page.addInitScript(() => {
 });
 await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
 await page.click('#connect');
+await page.waitForFunction(()=>[...document.querySelector('#input').options].some(option=>option.value==='fake-in'));
 await page.selectOption('#input','fake-in');
 await page.selectOption('#output','fake-out');
 assert.match(await page.locator('#midiStatus').textContent(),/Listening|MIDI enabled/i);
