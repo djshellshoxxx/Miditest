@@ -1,8 +1,11 @@
 name: Build Windows release
 
+# Runs on a v* tag, a manual dispatch, or any push whose commit message contains [release].
+# The release tag is v<package.json version>; the action creates it if it does not exist.
 on:
   push:
     tags: ["v*"]
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
@@ -10,6 +13,7 @@ permissions:
 
 jobs:
   build-windows:
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[release]')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,11 +32,16 @@ jobs:
         with:
           name: MIDItest-windows
           path: dist/*.exe
+      - name: Read version
+        id: ver
+        shell: bash
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: MIDItest ${{ github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: MIDItest ${{ steps.ver.outputs.tag }}
           prerelease: true
           files: dist/*.exe
           body: |
