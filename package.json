@@ -1,0 +1,28 @@
+{
+  "name": "miditest",
+  "productName": "MIDItest",
+  "version": "0.1.0-beta",
+  "description": "MIDItest by Circuit Drift Labs - MIDI controller diagnostics and device test database",
+  "author": "Circuit Drift Labs",
+  "license": "MIT",
+  "private": true,
+  "main": "desktop/main.cjs",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "test": "node tests/core.test.mjs && node tests/ui-static.test.mjs && node tests/device-tests.test.mjs",
+    "dist:win": "electron-builder --win portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.6.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.circuitdriftlabs.miditest",
+    "productName": "MIDItest",
+    "artifactName": "MIDItest-${version}-portable.exe",
+    "directories": {"output": "dist"},
+    "files": ["index.html", "styles.css", "favicon.svg", "*.js", "devices/**", "desktop/**", "LICENSE", "package.json"],
+    "win": {"target": "portable"}
+  }
+}

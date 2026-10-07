@@ -1,0 +1,53 @@
+{
+  "id": "ni-maschine-mk1",
+  "name": "MASCHINE (MK1)",
+  "maker": "Native Instruments",
+  "category": "Pad controller / groovebox controller",
+  "years": "2009",
+  "notes": "Not class compliant. It needs the NI MASCHINE Controller Driver, plus Controller Editor (or a running Maschine instance) to act as a MIDI device. Enter MIDI mode with SHIFT + CONTROL; the left display then shows the template name, and SHIFT + page arrows changes template. Every message is set by the Controller Editor template, so these tests learn them live. NI default mappings usually start Pad 1 at C1 (note 36).",
+  "portHints": ["Maschine Controller", "Maschine"],
+  "drivers": [
+    {"os": "Windows 10/11", "name": "MASCHINE Controller Driver 3.0.1 (last listed for MK1, 'Windows 7 and above')", "url": "https://www.native-instruments.com/en/support/downloads/drivers-other-files/"},
+    {"os": "Windows 10/11", "name": "Controller Editor (for MIDI mode and templates), via Native Access", "url": "https://www.native-instruments.com/en/specials/native-access/"},
+    {"os": "Info", "name": "NI legacy product policy", "url": "https://support.native-instruments.com/support/solutions/articles/69000882245-native-instruments-updates-for-legacy-products"}
+  ],
+  "manuals": [
+    {"title": "Controller Editor Manual (MIDI mode, LED modes)", "url": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/Controller_Editor_Manual_English_2017_01.pdf"},
+    {"title": "MASCHINE MK1 Getting Started 2.7.6 (DE; EN in same folder)", "url": "https://www.native-instruments.com/fileadmin/ni_media/downloads/manuals/maschine_276/MASCHINE_MK1_2.7.6_0518_Getting_Started_German.pdf"},
+    {"title": "MK1 Hardware Control Reference (mirror)", "url": "https://manualsnet.com/native-instruments/maschine-mk1"},
+    {"title": "Adjusting pad sensitivity", "url": "https://support.native-instruments.com/support/solutions/articles/69000879874-maschine-adjusting-the-pad-sensitivity"},
+    {"title": "Sound On Sound review", "url": "https://www.soundonsound.com/reviews/native-instruments-maschine-mk1"}
+  ],
+  "serviceManual": {"available": false, "notes": "Not public. NI repairs through its own service. Technicians use NI community repair threads, teardown photos and schematic archives (no MK1 entry confirmed). LED/HID reverse engineering: github.com/fzero/maschine-mk1."},
+  "setup": ["Install the MASCHINE Controller Driver and Controller Editor, then reboot.", "Close the Maschine software. Open Controller Editor and select the factory template.", "Press SHIFT + CONTROL to enter MIDI mode."],
+  "failureModes": ["Dead or insensitive pads (dirty or worn sensor sheet: open the unit and clean it)", "Uneven pad velocity", "Encoder jitter / skipping", "Dim or failing LCD backlight", "Dead button LEDs", "Loose USB socket", "Not recognised on Win10/11 (driver, not hardware)"],
+  "sections": [
+    {"id": "conn", "name": "Driver & MIDI mode", "tests": [
+      {"id": "mk1-driver", "name": "Driver and MIDI mode", "type": "manual", "steps": ["Device Manager should show the Maschine Controller without errors.", "SHIFT + CONTROL: the left display shows the template name.", "MIDItest should list a Maschine Controller MIDI input. Write the exact name in the notes."]},
+      {"id": "mk1-any", "name": "Any MIDI arrives", "type": "any", "minMessages": 3, "steps": ["Hit any pad."]}
+    ]},
+    {"id": "pads", "name": "Pads", "tests": [
+      {"id": "mk1-pads", "name": "16 pads press/release", "type": "set", "kinds": ["note", "cc"], "count": 16, "requireRelease": true, "expect": {"kinds": ["note"], "nums": [36, 51]}, "expectNote": "Pads usually notes 36–51 (C1–D#2), template dependent", "steps": ["Hit each of the 16 pads once, firmly. Each needs a press and a release.", "A double-trigger warning means the sensor sheet is dirty or worn."]},
+      {"id": "mk1-padvel", "name": "Pad velocity range (every pad)", "type": "set", "kinds": ["note"], "count": 16, "velocityRange": [40, 110], "steps": ["Hit every pad very softly, then very hard.", "A pad passes when it has produced velocity ≤40 and ≥110. Weak pads won't reach 110."]},
+      {"id": "mk1-vel", "name": "Velocity distribution", "type": "velocity", "softMax": 40, "hardMin": 110, "steps": ["Play pad 1 repeatedly, from soft to hard. The spread should be smooth, with no gaps."]},
+      {"id": "mk1-pressure", "name": "Pad pressure / aftertouch", "type": "pressure", "count": 1, "minPeak": 100, "steps": ["In Controller Editor, enable aftertouch or pressure on the pads if it is off.", "Press and hold a pad, then press harder. Pressure messages should rise to 100 or more."]},
+      {"id": "mk1-padled", "name": "Pad LED feedback", "type": "midi-out", "echo": "mk1-pads", "steps": ["In Controller Editor, set the pad LED mode to 'for MIDI In'.", "Select the device MIDI out and press Send: all 16 pads should light. Press Clear: they should go dark."]}
+    ]},
+    {"id": "encoders", "name": "Encoders", "tests": [
+      {"id": "mk1-enc", "name": "8 display encoders both directions", "type": "encoder", "count": 8, "minSteps": 4, "steps": ["Turn each of the 8 encoders under the displays 4+ steps right, then 4+ steps left.", "Watch for steps reported in the wrong direction (jitter)."]},
+      {"id": "mk1-master", "name": "Master encoder (Volume/Tempo/Swing)", "type": "encoder", "count": 1, "minSteps": 4, "steps": ["Turn the master encoder both ways."]}
+    ]},
+    {"id": "buttons", "name": "Buttons", "tests": [
+      {"id": "mk1-groups", "name": "Group buttons A–H", "type": "set", "kinds": ["note", "cc"], "count": 8, "requireRelease": true, "steps": ["Press each of the 8 group buttons."]},
+      {"id": "mk1-transport", "name": "Transport (Restart, Step < >, Grid, Play, Rec, Erase)", "type": "set", "kinds": ["note", "cc"], "count": 7, "requireRelease": true, "steps": ["Press each transport button once."]},
+      {"id": "mk1-soft", "name": "8 soft buttons above the displays", "type": "set", "kinds": ["note", "cc"], "count": 8, "requireRelease": true, "steps": ["Press each of the 8 buttons above the displays."]},
+      {"id": "mk1-modes", "name": "Mode & edit buttons", "type": "set", "kinds": ["note", "cc"], "count": 16, "requireRelease": true, "steps": ["Press each remaining button except SHIFT+CONTROL: Control, Step, Browse, Sampling, page arrows, All, Auto Write, Snap, Scene, Pattern, Pad Mode, Navigate, Duplicate, Select, Solo, Mute, Note Repeat, Volume, Tempo, Swing.", "Some buttons may be reserved by the template. Note any that send nothing."]},
+      {"id": "mk1-btnled", "name": "Button LED feedback", "type": "midi-out", "echo": "mk1-modes", "steps": ["Set the button LED mode to 'for MIDI In' in Controller Editor, then press Send. Every learned button should light."]}
+    ]},
+    {"id": "hw", "name": "Displays & DIN", "tests": [
+      {"id": "mk1-lcd", "name": "Both LCDs & backlight", "type": "manual", "steps": ["Both displays should be readable with an even backlight and no missing segments or lines."]},
+      {"id": "mk1-din", "name": "5-pin MIDI In/Out loopback", "type": "din-loopback", "count": 64, "steps": ["Connect a 5-pin MIDI cable from the Maschine MIDI OUT to its MIDI IN.", "Select the Maschine DIN ports (not the Controller Editor virtual ports) as device in and out, then run.", "All messages must return."]},
+      {"id": "mk1-usb", "name": "USB socket stability", "type": "manual", "steps": ["While moving encoders, gently flex the USB cable at the socket. The device must not disconnect."]}
+    ]}
+  ]
+}

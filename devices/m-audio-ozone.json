@@ -1,0 +1,46 @@
+{
+  "id": "m-audio-ozone",
+  "name": "Ozone",
+  "maker": "M-Audio",
+  "category": "25-key controller + 2-in/2-out USB audio interface",
+  "years": "2003",
+  "notes": "Legacy: the last driver is the Windows 7 x64 package 'Ozone 6.0.2 / 5.10.0.5132' (2009). M-Audio does not support it on Windows 10/11, but it often installs there (compatibility mode, driver signature warnings). Without the driver, MIDI and audio may not appear at all. That makes driver installation itself the first test. The keys have no aftertouch, and no LEDs can be lit by MIDI. Knob CCs are programmable (MIDI/SELECT + keys), so tests learn them.",
+  "portHints": ["Ozone", "USB Audio Device"],
+  "drivers": [
+    {"os": "Windows 10/11 (unsupported)", "name": "Ozone Win7 x64 driver 6.0.2 / 5.10.0.5132 – M-Audio Legacy downloads", "url": "https://www.m-audio.com/legacy"},
+    {"os": "Info", "name": "M-Audio public Win7 drivers announcement", "url": "https://routenote.com/blog/m-audio-release-public-drivers-compatible-with-windows-7/"}
+  ],
+  "manuals": [
+    {"title": "Ozone User Guide (PDF mirror)", "url": "https://c3.zzounds.com/media/MAOzone_Manual-0b329cb9b90ba40909c3bd4e4a36f9b1.pdf"},
+    {"title": "NAMM 2003 announcement", "url": "https://sonicstate.com/news/2003/01/21/wnamm03-m-audio-take-it-to-the-ozone"}
+  ],
+  "serviceManual": {"available": false, "notes": "None public; inMusic no longer services it. Look in schematic archives (elektrotanya, eserviceinfo, badcaps) or use donor boards."},
+  "setup": ["Install the Win7 x64 driver (right-click the installer → Properties → Compatibility → Windows 7 if needed), then reboot.", "Connect USB (and the PSU if you have it)."],
+  "failureModes": ["Dead or double-triggering keys (perished rubber contacts)", "Scratchy or jumpy knobs/gain pots", "Pitch/mod wheel not centring, or noisy", "Dead mic preamp / phantom", "Crackly headphone jack", "Worn USB socket", "Audio dropouts from the unsupported driver (not hardware)"],
+  "sections": [
+    {"id": "conn", "name": "Driver", "tests": [
+      {"id": "oz-driver", "name": "Driver install & enumeration", "type": "manual", "steps": ["Device Manager: Ozone audio and MIDI should have no yellow warning.", "MIDItest should list an Ozone MIDI input (or 'USB Audio Device'). Write the name, driver version and Windows build in the notes.", "If nothing appears: Fail. That is a driver result, not proof of a hardware fault."]},
+      {"id": "oz-any", "name": "Any MIDI arrives", "type": "any", "minMessages": 3, "steps": ["Play a key."]}
+    ]},
+    {"id": "keys", "name": "Keybed", "tests": [
+      {"id": "oz-keys", "name": "All 25 keys", "type": "keys", "count": 25, "steps": ["Play every key from lowest to highest and release each. Gaps = dead keys; double-trigger = worn rubber contacts."]},
+      {"id": "oz-vel", "name": "Velocity response", "type": "velocity", "softMax": 40, "hardMin": 110, "steps": ["Play soft and hard across the keyboard."]},
+      {"id": "oz-octave", "name": "Octave buttons", "type": "manual", "steps": ["Press octave up or down and replay a key: the Monitor note number should shift by 12."]}
+    ]},
+    {"id": "controls", "name": "Wheels, knobs & pedal", "tests": [
+      {"id": "oz-pb", "name": "Pitch wheel", "type": "bend", "centerReturns": 3, "steps": ["Push the pitch wheel fully up and down and let it spring back 3 times. The rest offset should be near 0."]},
+      {"id": "oz-mod", "name": "Mod wheel", "type": "range", "kinds": ["cc"], "count": 1, "steps": ["Move the mod wheel from minimum to maximum."]},
+      {"id": "oz-knobs", "name": "8 assignable knobs full travel", "type": "range", "kinds": ["cc"], "count": 8, "steps": ["Turn each knob slowly fully left, then fully right. Each must reach 0 and 127 without jumps."]},
+      {"id": "oz-sustain", "name": "Sustain pedal", "type": "set", "kinds": ["cc"], "count": 1, "requireRelease": true, "steps": ["Plug in a sustain pedal and press/release it several times (CC64 expected)."]},
+      {"id": "oz-prog", "name": "MIDI/SELECT programming", "type": "manual", "steps": ["Use MIDI/SELECT + key entry to send a program change or reassign a knob (see manual). Confirm the result in the Monitor tab."]}
+    ]},
+    {"id": "midiout", "name": "MIDI Out port", "tests": [
+      {"id": "oz-din", "name": "MIDI Out (DIN) to another device", "type": "manual", "steps": ["The Ozone has a MIDI Out but no confirmed MIDI In. Connect its MIDI Out to a synth or another interface's MIDI In.", "Play keys and confirm the notes arrive (or use another interface's input in the Monitor tab)."]}
+    ]},
+    {"id": "audio", "name": "Audio interface", "tests": [
+      {"id": "oz-out", "name": "Outputs L/R & headphones", "type": "audio-out", "channels": 2, "steps": ["Choose the Ozone output and play Left, Right, Both. Each must come only from the correct side, through both line outs and headphones."]},
+      {"id": "oz-in", "name": "Mic / instrument / aux inputs", "type": "audio-in", "channels": 2, "steps": ["Choose the Ozone input and start the meter.", "Test the XLR mic (phantom on for a condenser), the 1/4\" instrument input and the aux inputs. Each should show signal on the expected channel.", "Sweep the gain knob: the level should change smoothly, with no crackle."]},
+      {"id": "oz-mon", "name": "Direct monitor / mix", "type": "manual", "steps": ["Sweep the monitor/mix control. You should hear a smooth blend between input and computer playback."]}
+    ]}
+  ]
+}

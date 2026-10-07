@@ -1,0 +1,50 @@
+{
+  "id": "rane-twelve-mk2",
+  "name": "TWELVE MKII",
+  "maker": "Rane",
+  "category": "Motorized 12\" turntable controller (USB-MIDI)",
+  "years": "2020",
+  "notes": "USB-MIDI class compliant: the controls appear as a generic MIDI device, no driver needed. Rane publishes no public CC/note table, so these tests learn each control's message live and record it in the results; that record becomes the reference map for this database. No USB audio: DVS signal leaves via the RCA outputs.",
+  "portHints": ["TWELVE", "Rane"],
+  "drivers": [
+    {"os": "Windows 10/11", "name": "No driver required (USB-MIDI class compliant)", "url": ""},
+    {"os": "Windows 10/11", "name": "TWELVE MKII Firmware Updater (firmware 00.53, Windows v1.0.2)", "url": "https://rane.com/downloads"}
+  ],
+  "manuals": [
+    {"title": "TWELVE MKII User Guide v1.1", "url": "https://cdn.inmusicbrands.com/rane/twelveMKII/Twelve_MKII-UserGuide-v1.1.pdf"},
+    {"title": "Setup & connectivity", "url": "https://support.rane.com/en/support/solutions/articles/69000828932-rane-twelve-mkii-setup-and-connectivity"},
+    {"title": "Calibrating the pitch fader", "url": "https://support.rane.com/en/support/solutions/articles/69000814143-rane-dj-twelve-and-twelve-mkii-calibrating-the-pitch-fader"},
+    {"title": "Twelve FAQ", "url": "https://support.rane.com/en/support/solutions/articles/69000814170-rane-dj-twelve-frequently-asked-questions"},
+    {"title": "Serato hardware page", "url": "https://serato.com/dj/hardware/rane-twelve-mkii"}
+  ],
+  "serviceManual": {"available": false, "notes": "No public service manual. Rane/inMusic supply service documentation only to authorized Rane service centers."},
+  "setup": ["Connect USB-B directly to the computer (or a powered hub / Rane mixer hub) and mains power.", "Close Serato/VirtualDJ so MIDItest can see the raw MIDI.", "Put a record on the slipmat. Select Deck 1 so the MIDI channel stays the same during the tests."],
+  "failureModes": ["Pitch fader off-centre or not reaching full range (recalibrate: hold 8%+16% at power-on)", "Platter reversing or changing speed on fast pull-back + Start/Stop (old motor firmware)", "Platter stopping / data dropouts", "Speed drift or wow at 33/45", "Torque switch not working", "Encoder skipping", "Strip dead zones", "OLED faults", "USB disconnects", "RCA output hum/noise", "Sticking Start/Stop plunger"],
+  "sections": [
+    {"id": "conn", "name": "Connection", "tests": [
+      {"id": "r12-port", "name": "MIDI port appears", "type": "manual", "steps": ["Press Enable MIDI, open this device and confirm the Device MIDI in list shows a TWELVE MKII port.", "Write the exact port name into the notes field."]},
+      {"id": "r12-any", "name": "Any MIDI arrives", "type": "any", "minMessages": 5, "steps": ["Press any button or touch the platter. Five or more messages = pass."]}
+    ]},
+    {"id": "platter", "name": "Platter", "tests": [
+      {"id": "r12-platter", "name": "Platter motion both directions", "type": "encoder", "kinds": ["cc", "pb", "note"], "count": 1, "minSteps": 20, "steps": ["Motor OFF. Turn the platter slowly forwards one full turn, then backwards one full turn.", "Both directions must be detected. Look for gaps or bursts in the message rate."]},
+      {"id": "r12-scratch", "name": "Fast scratch / data continuity", "type": "any", "minMessages": 400, "steps": ["Motor ON at 33. Scratch back and forth quickly for about 10 seconds.", "Watch for dropouts. The message count must keep climbing with no stalls."]},
+      {"id": "r12-motor", "name": "Motor, speed and torque", "type": "manual", "steps": ["Press Start/Stop. The platter should reach 33⅓ smoothly. Check speed with a strobe or a phone strobe app.", "Switch to 45 and check again. Pitch at 0% must match the strobe.", "Toggle torque Hi/Lo: the drag under your hand should change clearly.", "Motor Off switch: the platter should wind down. Fast pull-back + Start/Stop: the platter must not reverse or jump speed."]}
+    ]},
+    {"id": "pitch", "name": "Pitch", "tests": [
+      {"id": "r12-pitchfader", "name": "Pitch fader full travel", "type": "range", "kinds": ["cc", "pb"], "count": 1, "min": 0, "max": 127, "steps": ["Move the pitch fader slowly from one end to the other, then back.", "It must reach both extremes with no jumps. If it uses 14-bit pitch-bend, the range check scales automatically."]},
+      {"id": "r12-pitchrange", "name": "Pitch range buttons 8/16/50%", "type": "set", "kinds": ["note", "cc"], "count": 3, "steps": ["Press 8%, 16% and 50% in turn. Each must send a message and change the OLED range."]},
+      {"id": "r12-pitchcentre", "name": "Pitch centre / calibration", "type": "manual", "steps": ["Put the fader in the centre detent. The OLED should show 0.0%.", "If it doesn't: power on holding 8% + 16% (Test Mode), move full left, full right, centre, press 8% + 50%, power-cycle."]}
+    ]},
+    {"id": "buttons", "name": "Buttons, strip & encoder", "tests": [
+      {"id": "r12-transport", "name": "Start/Stop and deck buttons", "type": "set", "kinds": ["note", "cc"], "count": 3, "requireRelease": true, "steps": ["Press and release Start/Stop (motor may start: that's fine), then each Deck Select button.", "Each must send press AND release."]},
+      {"id": "r12-strip", "name": "Touch strip – search & 8 cue zones", "type": "set", "kinds": ["note", "cc", "pb"], "count": 1, "requireRelease": true, "steps": ["Slide a finger along the whole strip slowly, end to end, then tap each of the 8 cue zones.", "Values should cover the full length. Note any dead spots in the notes field."]},
+      {"id": "r12-encoder", "name": "Browse encoder + push", "type": "encoder", "count": 1, "minSteps": 5, "steps": ["Turn the browse encoder 5+ clicks each way. Push it and press Back / Instant Doubles."]},
+      {"id": "r12-allbuttons", "name": "Every remaining button", "type": "set", "kinds": ["note", "cc"], "count": 6, "requireRelease": true, "steps": ["Press each remaining button on the deck once (Back, Instant Doubles, shift-type buttons, strip mode, etc.).", "Adjust the count in your notes if your unit has more or fewer."]}
+    ]},
+    {"id": "feedback", "name": "Feedback & outputs", "tests": [
+      {"id": "r12-led-echo", "name": "LED feedback (echo learned buttons)", "type": "midi-out", "echo": "r12-allbuttons", "steps": ["Select the Device MIDI out.", "Press Send: MIDItest sends the button messages back at full value. Note which LEDs light. Some feedback is SysEx/host-only, so 'no response' is a finding, not a fail."]},
+      {"id": "r12-oled", "name": "OLED display", "type": "manual", "steps": ["Check the OLED for dead pixels or lines and that it shows pitch range and deck.", "Optional: load Serato and confirm BPM appears (firmware 00.53+ for VirtualDJ)."]},
+      {"id": "r12-rca", "name": "RCA output / DVS signal", "type": "manual", "steps": ["Connect the RCA outputs to a mixer or interface. Play the control signal or record.", "Check both channels for hum, crackle or one-sided output."]}
+    ]}
+  ]
+}

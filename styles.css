@@ -7,3 +7,32 @@ main{width:min(1580px,94vw);margin:0 auto;padding:18px 0 60px}.panel{background:
 @media(max-width:700px){main{width:min(96vw,100%);padding-top:10px}.appbar{padding:8px 12px}.brand small,.status-pill{display:none}.tabs{top:55px}.sessionbar{grid-template-columns:1fr}.session-actions{grid-column:auto}.stats{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr}.output-grid{grid-template-columns:1fr 1fr}.metric-grid{grid-template-columns:1fr 1fr}.section-head{flex-direction:column}.event-table{min-width:860px}.panel{padding:13px}.hero h1{font-size:34px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 @media print{.appbar,.sessionbar,.tabs,.related,footer,.action-row,button{display:none!important}.view{display:none!important}#reportView.active-view,#mappingView.active-view{display:block!important}.panel{box-shadow:none;border-color:#777;color:#000;background:#fff}body{background:#fff;color:#000}.report pre{color:#000;background:#fff}.muted{color:#444}}
+
+/* Device Tests */
+.dt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.dt-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:14px}
+.dt-card small,.dt-card span{color:var(--muted);font-size:.86em}
+.dt-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-bottom:12px}
+.dt-title{display:inline;margin-left:8px}
+.dt-ports{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.dt-ports label{display:flex;flex-direction:column;font-size:.85em;color:var(--muted)}
+.dt-layout{grid-template-columns:minmax(220px,300px) 1fr}
+.dt-nav{max-height:75vh;overflow:auto}
+.dt-nav h3{margin:12px 0 4px;font-size:.8em;text-transform:uppercase;color:var(--muted)}
+.dt-test{display:flex;width:100%;align-items:center;gap:8px;text-align:left;border-color:transparent;background:transparent;min-height:34px;padding:5px 8px}
+.dt-test small{margin-left:auto;color:var(--muted);font-size:.75em}
+.dt-test.active{background:var(--surface2);border-color:var(--line2)}
+.dt-dot{width:10px;height:10px;border-radius:50%;background:var(--line2);flex:none}
+.dt-dot.pass{background:var(--good)}.dt-dot.warn{background:var(--warn)}.dt-dot.fail{background:var(--danger)}.dt-dot.skip{background:var(--muted)}
+.dt-steps li{margin:4px 0}
+.dt-progress{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:10px 0 6px}
+.dt-progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.dt-progress span.pass{background:var(--good)}.dt-progress span.warn{background:var(--warn)}.dt-progress span.fail{background:var(--danger)}
+.dt-summary{font-weight:600}
+.dt-notes{display:flex;flex-direction:column;margin:10px 0;color:var(--muted)}
+.dt-notes textarea{font:inherit;background:#0b1621;color:var(--text);border:1px solid var(--line2);border-radius:8px;padding:8px}
+.dt-actions{flex-wrap:wrap}
+button.good{border-color:var(--good)}
+.dt-meters>div{margin:8px 0}
+.attention{color:var(--warn)}
+@media(max-width:700px){.dt-layout{grid-template-columns:1fr}.dt-nav{max-height:none}}

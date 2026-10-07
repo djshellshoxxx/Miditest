@@ -8,7 +8,7 @@ const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
 assert.match(html,/type="module" src="\.\/app-v2\.js"/);
 assert.doesNotMatch(html,/src="\.\/app\.js"/);
 assert.match(html,/id="quick"/);
-for(const view of ['monitorView','controlsView','keyboardView','timingView','outputView','mappingView','reportView'])assert.match(html,new RegExp('id="'+view+'"'));
+for(const view of ['devicesView','monitorView','controlsView','keyboardView','timingView','outputView','mappingView','reportView'])assert.match(html,new RegExp('id="'+view+'"'));
 
 const ids=[...app.matchAll(/'([A-Za-z][A-Za-z0-9]+)'/g)].map(m=>m[1]);
 const required=['connect','input','output','guided','monitor','controls','keyboard','runLoopback','exportReport','helpDialog'];
@@ -19,4 +19,5 @@ assert.match(css,/prefers-reduced-motion/);
 assert.match(css,/@media\(max-width:700px\)/);
 assert.match(html,/Enable SysEx/);
 assert.match(html,/Export JSON|JSON/);
+assert.match(html,/src="\.\/device-tests\.js"/);
 console.log('MIDItest static UI tests: PASS');
