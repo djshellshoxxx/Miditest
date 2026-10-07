@@ -69,7 +69,7 @@ npm start                            # run the desktop app locally
 npm run dist:win                     # build Windows installer + portable exe into dist/ (run on Windows)
 ```
 
-GitHub Actions runs all tests on pull requests and on `main`. GitHub Pages deploys only from `main` after the tests pass. Pushing a tag starting with `v` builds the Windows exe on a Windows runner and publishes it as a GitHub release (`.github/workflows/release.yml`).
+GitHub Actions runs all tests on pull requests and on `main`. GitHub Pages deploys only from `main` after the tests pass. Pull requests build the Windows exe on a Windows runner and attach it to the workflow run; merging release-related changes to `main` (or pushing a `v*` tag) builds it and publishes the GitHub pre-release (`.github/workflows/release.yml`).
 
 ## Specifications
 
