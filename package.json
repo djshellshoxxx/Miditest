@@ -1,0 +1,72 @@
+{
+  "name": "miditest",
+  "productName": "MIDItest",
+  "version": "0.0.1-beta",
+  "description": "MIDItest by Circuit Drift Labs - local MIDI monitor and controller diagnostic bench",
+  "author": "Circuit Drift Labs",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "homepage": "https://djshellshoxxx.github.io/Miditest/",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "test": "node tests/core.test.mjs && node tests/ui-static.test.mjs && node --input-type=module --check < app-v2.js && node --input-type=module --check < midi-core.js && node --input-type=module --check < ui-assistance.js",
+    "test:browser": "node tests/browser.test.mjs",
+    "start": "electron .",
+    "dist:win": "electron-builder --win --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.6.0",
+    "electron-builder": "26.15.3",
+    "playwright": "1.56.1"
+  },
+  "build": {
+    "appId": "io.github.djshellshoxxx.miditest",
+    "productName": "MIDItest",
+    "copyright": "Copyright © Circuit Drift Labs",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "app-v2.js",
+      "midi-core.js",
+      "ui-assistance.js",
+      "styles.css",
+      "favicon.svg",
+      "desktop/**",
+      "build/icon.png",
+      "LICENSE",
+      "COPYRIGHT-TRADEMARK.md",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "MIDItest-Setup-0.01-beta-x64.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "MIDItest"
+    },
+    "portable": {
+      "artifactName": "MIDItest-0.01-beta-x64-portable.${ext}"
+    }
+  }
+}

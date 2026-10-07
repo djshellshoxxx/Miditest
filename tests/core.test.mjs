@@ -3,7 +3,8 @@ import {
   noteName,decodeMessage,controlStats,pitchStats,clockBpm,classifyEncoder,messageRate,
   velocityStats,latencyStats,analyzeNotePairs,compareLoopback,detectFloods,deadZones,
   analyzeCcPairs,createParameterTracker,processParameterMessage,baselineDiff,
-  chordName,channelStats,performanceStats
+  chordName,channelStats,performanceStats,
+  stationaryJitter,pitchStats as pitchStatsT,switchStats,isSwitchLike,rollingBpm,validateReport,summarize
 } from '../midi-core.js';
 
 assert.equal(noteName(60),'C4');
@@ -70,7 +71,9 @@ const diff=baselineDiff(
  {controls:{'1:7':{range:127,jitter:0.2}},keys:[60,61],disconnects:0},
  {controls:{'1:7':{range:100,jitter:2.5}},keys:[60],disconnects:2}
 );
-assert.equal(diff.missingKeys[0],61); assert.equal(diff.disconnectDelta,2); assert.equal(diff.controls['1:7'].rangeDelta,-27);\nconst drift=baselineDiff({pitch:{center:5},latency:{median:10},messageRate:{peak:50}},{pitch:{center:8},latency:{median:14},messageRate:{peak:75}});\nassert.equal(drift.pitchCenterDelta,3); assert.equal(drift.latencyMedianDelta,4); assert.equal(drift.peakRateDelta,25);
+assert.equal(diff.missingKeys[0],61); assert.equal(diff.disconnectDelta,2); assert.equal(diff.controls['1:7'].rangeDelta,-27);
+const drift=baselineDiff({pitch:{center:5},latency:{median:10},messageRate:{peak:50}},{pitch:{center:8},latency:{median:14},messageRate:{peak:75}});
+assert.equal(drift.pitchCenterDelta,3); assert.equal(drift.latencyMedianDelta,4); assert.equal(drift.peakRateDelta,25);
 
 assert.equal(chordName([60,64,67]),'C major');
 assert.equal(chordName([60,63,67]),'C minor');
@@ -83,6 +86,37 @@ const perf=performanceStats([
  {kind:'noteoff',channel:1,a:60,b:0,t:250},
  {kind:'noteon',channel:1,a:64,b:90,t:500}
 ]);
-assert.equal(perf.notes.length,2); assert.equal(perf.notes[0].duration,250); assert.equal(perf.interOnset[0],500);\nconst chordPerf=performanceStats([{kind:'noteon',channel:1,a:60,b:90,t:0},{kind:'noteon',channel:1,a:64,b:90,t:7},{kind:'noteon',channel:1,a:67,b:90,t:11}]);\nassert.equal(chordPerf.simultaneousGroups.length,1); assert.deepEqual(chordPerf.simultaneousGroups[0].notes,[60,64,67]);
+assert.equal(perf.notes.length,2); assert.equal(perf.notes[0].duration,250); assert.equal(perf.interOnset[0],500);
+const chordPerf=performanceStats([{kind:'noteon',channel:1,a:60,b:90,t:0},{kind:'noteon',channel:1,a:64,b:90,t:7},{kind:'noteon',channel:1,a:67,b:90,t:11}]);
+assert.equal(chordPerf.simultaneousGroups.length,1); assert.deepEqual(chordPerf.simultaneousGroups[0].notes,[60,64,67]);
+
+// stationary jitter: smooth sweeps are not jitter, flicker is
+assert.equal(stationaryJitter(Array.from({length:128},(_,i)=>i)),0);
+assert.equal(stationaryJitter([60,68,60,68,60,68]),8);
+assert.equal(controlStats(Array.from({length:128},(_,i)=>i)).jitter,0);
+
+// pitch bend resting center uses settled values only
+const pv=[-8192,-4000,-200,0,4000,8191,0,30],pt=[0,10,20,30,40,50,300,700];
+const prest=pitchStatsT(pv,pt);assert.equal(prest.centerSamples,2);assert.equal(prest.center,15);
+
+// switch / pedal behaviour
+assert.ok(isSwitchLike([0,127,0,127]));assert.ok(!isSwitchLike([1,127,1,127]));assert.ok(!isSwitchLike([0,10,20]));
+assert.equal(classifyEncoder([0,127,0,127]),'Switch / button (on/off)');
+const sw=switchStats([127,0,127,127,0],[0,100,120,200,400]);
+assert.equal(sw.transitions,3);assert.equal(sw.bounces,1);assert.equal(sw.repeats,1);assert.equal(sw.state,'off');
+
+// rolling clock tempo
+assert.ok(Math.abs(rollingBpm(Array.from({length:30},(_,i)=>i*(60000/100/24)))-100)<0.01);
+assert.equal(rollingBpm([0,1,2]),null);
+
+// report import validation
+assert.equal(validateReport({version:2,eventCount:0}),null);
+assert.match(validateReport({version:99,eventCount:0}),/Unsupported report version/);
+assert.match(validateReport({version:2}),/eventCount/);
+assert.match(validateReport([]),/not a JSON object/);
+
+assert.deepEqual(summarize([2,4]),{count:2,min:2,max:4,mean:3,median:3,stdev:1});
+const ps2=performanceStats([{kind:'noteon',channel:1,a:60,b:90,t:0},{kind:'noteoff',channel:1,a:60,b:0,t:100}]);
+assert.equal(ps2.durationStats.mean,100);
 
 console.log('MIDItest core tests: PASS');

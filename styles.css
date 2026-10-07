@@ -7,3 +7,16 @@ main{width:min(1580px,94vw);margin:0 auto;padding:18px 0 60px}.panel{background:
 @media(max-width:700px){main{width:min(96vw,100%);padding-top:10px}.appbar{padding:8px 12px}.brand small,.status-pill{display:none}.tabs{top:55px}.sessionbar{grid-template-columns:1fr}.session-actions{grid-column:auto}.stats{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr}.output-grid{grid-template-columns:1fr 1fr}.metric-grid{grid-template-columns:1fr 1fr}.section-head{flex-direction:column}.event-table{min-width:860px}.panel{padding:13px}.hero h1{font-size:34px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 @media print{.appbar,.sessionbar,.tabs,.related,footer,.action-row,button{display:none!important}.view{display:none!important}#reportView.active-view,#mappingView.active-view{display:block!important}.panel{box-shadow:none;border-color:#777;color:#000;background:#fff}body{background:#fff;color:#000}.report pre{color:#000;background:#fff}.muted{color:#444}}
+button.control-card{width:100%;text-align:left;font:inherit;color:inherit;background:transparent;border:0;border-top:1px solid #1c2935;border-radius:0;min-height:44px}
+button.control-card.selected{background:#10202d;border-radius:7px}
+.pitch-meter{position:relative;height:22px;margin-top:12px;border:1px solid var(--line2);border-radius:6px;background:#0b1520;overflow:hidden}
+.pitch-meter .pitch-center{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#8aa4bb}
+.pitch-meter .pitch-range{position:absolute;top:5px;bottom:5px;background:#2b4a66;border-radius:3px}
+.pitch-meter .pitch-now{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#6ba1cf}
+.sysex-list{display:grid;gap:8px;max-height:360px;overflow:auto}
+.sysex-item{border-top:1px solid #1c2935;padding-top:8px}
+.sysex-item code{display:block;margin-top:4px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;word-break:break-all;color:var(--muted)}
+.report-table{width:100%;border-collapse:collapse;margin:6px 0 14px}
+.report-table th,.report-table td{text-align:left;padding:6px 8px;border-top:1px solid #1c2935;vertical-align:top}
+.report-table th[scope="row"]{width:42%;color:var(--muted);font-weight:600}
+@media print{.report-table th,.report-table td{border-color:#999;color:#000}.finding .badge{color:#000!important}}

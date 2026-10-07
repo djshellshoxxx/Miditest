@@ -1,0 +1,57 @@
+name: Build Windows release
+
+# Pull requests: build the exe and attach it to the run (no release).
+# Merge to main (desktop/package/release-notes changes), a v* tag, or a manual run: build and publish the pre-release.
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+    paths: ["package.json", "package-lock.json", "desktop/**", "docs/release-notes/**", ".github/workflows/release.yml"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: v0.01-beta
+  RELEASE_NAME: MIDItest 0.01 Beta
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Core and static tests
+        run: npm test
+      - name: Build Windows installer and portable exe
+        run: npm run dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MIDItest-windows
+          path: |
+            dist/*.exe
+          if-no-files-found: error
+      - name: Publish GitHub release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ env.RELEASE_NAME }}
+          body_path: docs/release-notes/v0.01-beta.md
+          prerelease: true
+          files: |
+            dist/MIDItest-Setup-0.01-beta-x64.exe
+            dist/MIDItest-0.01-beta-x64-portable.exe
+          fail_on_unmatched_files: true

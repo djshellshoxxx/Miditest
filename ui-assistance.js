@@ -66,6 +66,6 @@ function init(){
  if(!hb.dataset.uiAssistanceBound){hb.dataset.uiAssistanceBound='true';hb.addEventListener('click',e=>{if(hb.id==='helpBtn')e.stopImmediatePropagation();renderHelp(h);typeof h.showModal==='function'?h.showModal():h.setAttribute('open','')},true)}
  const o=dialog('cdlOptionsDialog','Options'),ob=action('cdlOptionsBtn','Options');
  ob.addEventListener('click',()=>{renderOptions(o);typeof o.showModal==='function'?o.showModal():o.setAttribute('open','')});
- applyTooltips();new MutationObserver(()=>applyTooltips()).observe(document.body,{childList:true,subtree:true});
+ applyTooltips();let pending=null;new MutationObserver(()=>{if(pending)return;pending=setTimeout(()=>{pending=null;applyTooltips()},250)}).observe(document.body,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
