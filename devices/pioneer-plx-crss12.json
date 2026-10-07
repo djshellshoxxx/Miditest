@@ -1,0 +1,44 @@
+{
+  "id": "pioneer-plx-crss12",
+  "name": "PLX-CRSS12",
+  "maker": "Pioneer DJ (AlphaTheta)",
+  "category": "Hybrid direct-drive turntable with DVS control",
+  "years": "2023",
+  "notes": "\"Cross 12\" = PLX-CRSS12. It is USB class compliant (USB-C) and needs no driver. Only the performance pads and their mode buttons send MIDI. The platter is not MIDI or HID: in Digital Vinyl mode the deck generates a control tone on its RCA outputs. Pioneer has published no MIDI table, so these tests learn each message live.",
+  "portHints": ["PLX-CRSS12", "CRSS12", "PLX"],
+  "drivers": [
+    {"os": "Windows 10/11", "name": "No driver required (USB class compliant)", "url": ""},
+    {"os": "Windows 10/11", "name": "Firmware Update Manager (product support page)", "url": "https://www.pioneerdj.com/en/product/dj-players-turntables/plx-crss12/"}
+  ],
+  "manuals": [
+    {"title": "Operating Instructions (select PLX-CRSS12)", "url": "https://www.pioneerdj.com/en/support/documents/"},
+    {"title": "Product page", "url": "https://www.pioneerdj.com/en/product/dj-players-turntables/plx-crss12/"},
+    {"title": "VirtualDJ control guide", "url": "https://virtualdj.com/manuals/hardware/pioneer/plxcrss12/controls.html"},
+    {"title": "Serato hardware page", "url": "https://serato.com/dj/hardware/pioneer-plx-crss12"}
+  ],
+  "serviceManual": {"available": false, "notes": "Not public. Pioneer DJ / AlphaTheta supply RRV-numbered service manuals to authorized service centers. No RRV number found for this model."},
+  "setup": ["Connect USB-C to the computer and mains power. Close rekordbox/Serato.", "Set the mode switch to Digital Vinyl to check the DVS signal, and to Analog to check the tonearm."],
+  "failureModes": ["Speed or pitch inaccuracy (including the ±50% range)", "Pitch fader dead zone at centre, or scratchy fader", "MAGVEL clamp grip and torque/weight knob", "Dirty or unstable timecode on the RCA outputs", "Pads dead, or pad LEDs not lighting", "OLED faults", "USB-C port wear / disconnects", "Tonearm bearing play, anti-skate, cartridge/RCA hum", "Wow & flutter"],
+  "sections": [
+    {"id": "conn", "name": "Connection", "tests": [
+      {"id": "px-port", "name": "MIDI port appears", "type": "manual", "steps": ["Press Enable MIDI. Confirm a PLX-CRSS12 port is listed and write its exact name in the notes."]},
+      {"id": "px-any", "name": "Any MIDI arrives", "type": "any", "minMessages": 2, "steps": ["Press any performance pad."]}
+    ]},
+    {"id": "pads", "name": "Performance pads", "tests": [
+      {"id": "px-pads", "name": "Pads 1–4 press/release", "type": "set", "kinds": ["note", "cc"], "count": 4, "requireRelease": true, "steps": ["Press and release each of the 4 pads, one at a time, several times.", "Each needs press and release with no double-triggers."]},
+      {"id": "px-pads-b", "name": "Pads in bank 5–8", "type": "set", "kinds": ["note", "cc"], "count": 4, "requireRelease": true, "steps": ["Switch the pad bank to 5–8 with the bank button, then press each pad again.", "It should send different messages from bank 1–4."]},
+      {"id": "px-padmode", "name": "Pad mode / bank / shift buttons", "type": "set", "kinds": ["note", "cc"], "count": 2, "requireRelease": true, "steps": ["Press each pad-mode, bank and shift-type button once. Raise the count in your notes if there are more."]},
+      {"id": "px-pad-led", "name": "Pad LED feedback (echo)", "type": "midi-out", "echo": "px-pads", "steps": ["Select the Device MIDI out and press Send. Note whether the pad LEDs light. If not, feedback is probably host-protocol only: record it as a finding."]}
+    ]},
+    {"id": "deck", "name": "Turntable mechanics", "tests": [
+      {"id": "px-speed", "name": "Speed accuracy 33/45 and stop/start", "type": "manual", "steps": ["Use a strobe or strobe app at 33 and 45 with pitch at 0. It must be stable.", "Try all 3 stop-speed settings and MOTOR OFF."]},
+      {"id": "px-pitch", "name": "Pitch fader and ranges ±8/±16/±50", "type": "manual", "steps": ["Sweep the fader at each tempo range. The OLED value must change smoothly with no jumps.", "Centre should read 0.0. Press TEMPO RESET and confirm it returns to 0."]},
+      {"id": "px-clamp", "name": "MAGVEL clamp & torque knob", "type": "manual", "steps": ["In Digital Vinyl mode, fit the clamp. The record should be held firmly.", "Turn the weight/torque knob through its range: the feel must change."]},
+      {"id": "px-oled", "name": "OLED", "type": "manual", "steps": ["Check for dead pixels and that tempo range and key are shown. With software connected, BPM and deck should show."]}
+    ]},
+    {"id": "audio", "name": "Audio / DVS", "tests": [
+      {"id": "px-dvs", "name": "Digital Vinyl control signal", "type": "audio-in", "channels": 2, "steps": ["Connect the RCA out to an audio interface input. Choose that input and start the meter.", "Digital Vinyl mode, play: both channels should show a strong, steady level. Compare L and R peaks.", "Spin backwards and scratch: the level should stay stable. Use the Serato/rekordbox scope for the final timecode check."]},
+      {"id": "px-analog", "name": "Analog tonearm path", "type": "audio-in", "channels": 2, "steps": ["Analog mode with a record and cartridge: play and check both channels.", "Lift the needle and note the noise floor (hum)."]}
+    ]}
+  ]
+}

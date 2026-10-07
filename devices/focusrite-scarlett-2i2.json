@@ -1,0 +1,47 @@
+{
+  "id": "focusrite-scarlett-2i2",
+  "name": "Scarlett 2i2 (\"2x2\")",
+  "maker": "Focusrite",
+  "category": "USB audio interface (no MIDI)",
+  "years": "1st gen 2012 · 2nd gen 2016 · 3rd gen 2019 · 4th gen 2023",
+  "midi": false,
+  "notes": "Focusrite has never sold a 'Scarlett 2x2'; retailers describe the 2i2 as a 2x2 (2-in/2-out) interface. No 2i2 generation has MIDI ports (the 2i4 does). Testing is audio-domain: inputs, outputs, preamps, phantom power, monitoring.",
+  "portHints": ["Scarlett", "Focusrite"],
+  "drivers": [
+    {"os": "Windows 10/11", "name": "Focusrite Control 2 (includes USB ASIO driver 4.144.x)", "gens": "3rd, 4th", "url": "https://downloads.focusrite.com"},
+    {"os": "Windows 10/11", "name": "Focusrite USB Driver 4.119.13 (ASIO)", "gens": "2nd", "url": "https://downloads.focusrite.com/focusrite/scarlett-2nd-gen/scarlett-2i2-2nd-gen"},
+    {"os": "Windows 10/11", "name": "Focusrite USB Driver (see 1st-gen page; Win7/8 = 4.65.5)", "gens": "1st", "url": "https://downloads.focusrite.com/focusrite/scarlett-1st-gen/scarlett-2i2-1st-gen"},
+    {"os": "Windows 10/11", "name": "Built-in USB Audio 2.0 class driver usually works for 2nd–4th gen (no ASIO); 1st gen needs the Focusrite driver", "gens": "2nd–4th", "url": ""}
+  ],
+  "manuals": [
+    {"title": "2i2 4th Gen User Guide", "url": "https://fael-downloads-prod.focusrite.com/customer/prod/downloads/scarlett_2i2_4th_gen_user_guide_v4-pdf-en.pdf"},
+    {"title": "2i2 3rd Gen User Guide V2", "url": "https://fael-downloads-prod.focusrite.com/customer/prod/downloads/Scarlett%202i2%203rd%20Gen%20User%20Guide%20V2.pdf"},
+    {"title": "2i2 2nd Gen User Guide (EN mirror)", "url": "https://avsupport.trinitylaban.ac.uk/kb/wp-content/uploads/2018/09/scarlett2i22ndgenugenv1.pdf"},
+    {"title": "All generations – downloads portal", "url": "https://downloads.focusrite.com"}
+  ],
+  "serviceManual": {"available": false, "notes": "Focusrite does not publish service manuals or schematics. Community repair info only (GroupDIY, iFixit; 1st-gen op-amp supply regulator MIC5205 U4 is a known fix)."},
+  "failureModes": ["Scratchy gain pots / skipping gain encoder (4th gen)", "Dead or weak preamp channel", "Phantom power failure or switching thump", "Dead output side (DAC / op-amp / regulator)", "USB dropouts, crackle, worn USB socket", "Headphone L/R imbalance or crackle", "Halo LED faults", "Stuck INST/48V/AIR buttons", "Loose combo jacks"],
+  "sections": [
+    {"id": "setup", "name": "Setup & driver", "tests": [
+      {"id": "s2-enum", "name": "Device enumeration", "type": "manual", "steps": ["Connect via the supplied USB cable directly to a computer port (no unpowered hub).", "Confirm the USB/power LED is lit.", "Windows Sound settings: the Scarlett appears as playback AND recording device.", "Open Focusrite Control / Control 2 and note generation, firmware and driver version in the notes field."]},
+      {"id": "s2-midi-none", "name": "Confirm no MIDI port (expected)", "type": "manual", "steps": ["Press Enable MIDI in MIDItest.", "The Scarlett should NOT appear as a MIDI input/output. If it does, note the port name – it may be a 2i4."]}
+    ]},
+    {"id": "outputs", "name": "Outputs", "tests": [
+      {"id": "s2-out", "name": "Line outputs L/R and channel identity", "type": "audio-out", "channels": 2, "steps": ["Connect monitors or headphones. Turn MONITOR and headphone knobs to about 9 o'clock.", "Choose the Scarlett as audio output, then play Left, Right and Both.", "Confirm each tone only comes out of the correct side with no crackle."]},
+      {"id": "s2-hp", "name": "Headphone output balance & pot", "type": "manual", "steps": ["Play 'Both' tone from the output test.", "Sweep the headphone knob slowly min→max: level must change smoothly, no crackle or dropouts.", "Check left and right are equally loud; wiggle the plug gently for intermittent contact."]},
+      {"id": "s2-monitor-pot", "name": "Monitor level pot sweep", "type": "manual", "steps": ["With the tone playing, sweep MONITOR fully min→max.", "Listen for scratchiness, one-sided drop-out or sudden jumps."]}
+    ]},
+    {"id": "inputs", "name": "Inputs & preamps", "tests": [
+      {"id": "s2-in", "name": "Input 1 / Input 2 signal and noise floor", "type": "audio-in", "channels": 2, "steps": ["Choose the Scarlett as audio input and start the meter.", "With nothing plugged in and gain at minimum, record the noise floor.", "Feed a source into Input 1 only, then Input 2 only. Each meter must respond only on its own channel.", "Halo LED should go green with signal, amber/red when driven hot."]},
+      {"id": "s2-gain", "name": "Gain pot / encoder sweep", "type": "manual", "steps": ["Feed a steady signal into each input.", "Sweep gain min→max slowly while watching the meter: level must rise smoothly with no dropouts or crackle.", "4th gen: confirm the encoder does not skip steps and Auto Gain sets a sensible level."]},
+      {"id": "s2-inst", "name": "INST / LINE mode", "type": "manual", "steps": ["Plug a guitar or line source via 1/4\" jack into each input.", "Toggle INST: level/tone should change and the INST LED follow the switch on both channels."]},
+      {"id": "s2-48v", "name": "Phantom power (48V)", "type": "manual", "steps": ["With a condenser mic (or phantom tester) on XLR, switch 48V on: red 48V LED lights and the mic works.", "Optional: measure ~48 V on XLR pin 2 and pin 3 to pin 1.", "Switch off/on and listen for excessive thumps or ongoing noise."]},
+      {"id": "s2-air", "name": "AIR mode (3rd/4th gen only)", "type": "manual", "steps": ["Toggle AIR on each channel: the LED lights and the input gets brighter (4th gen: Presence and Drive modes).", "Mark Skip on 1st/2nd gen."]}
+    ]},
+    {"id": "monitoring", "name": "Monitoring & stability", "tests": [
+      {"id": "s2-direct", "name": "Direct monitor", "type": "manual", "steps": ["Plug headphones in, speak/play into Input 1.", "Direct Monitor ON: you hear the input with no latency. OFF: it disappears (unless a DAW monitors it)."]},
+      {"id": "s2-usb", "name": "USB stability (10 minutes)", "type": "manual", "steps": ["Keep the output tone and input meter running for 10 minutes.", "Gently flex the USB cable at the socket. Any dropout, click or device disconnect = fail (worn socket or cracked joints)."]},
+      {"id": "s2-leds", "name": "Front panel LEDs & buttons", "type": "manual", "steps": ["Check every halo, 48V, INST, AIR, Direct and USB LED lights.", "Press each button several times: it must toggle reliably every press."]}
+    ]}
+  ]
+}

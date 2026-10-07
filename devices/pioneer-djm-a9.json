@@ -1,0 +1,55 @@
+{
+  "id": "pioneer-djm-a9",
+  "name": "DJM-A9",
+  "maker": "Pioneer DJ (AlphaTheta)",
+  "category": "4-channel DJ mixer with USB audio + MIDI",
+  "years": "2023",
+  "notes": "Not class compliant on Windows: install the DJM-A9 driver first (ASIO/WDM audio + MIDI, plus Setting Utility). MIDI goes out over USB only; there is no 5-pin DIN. MIDI output is switched on with the MIDI START/ON button in the Beat FX section, and the channel is set in Utility/My Settings (usually CH1). The full CC table is in the Operating Instructions 'List of MIDI messages' appendix. Until it is copied in here, these tests learn each control live. EQ knobs send MIDI AND still act on the hardware EQ.",
+  "portHints": ["DJM-A9", "DJM"],
+  "drivers": [
+    {"os": "Windows 10/11", "name": "DJM-A9 Windows driver (≈ Ver 1.100) + Setting Utility", "url": "https://www.pioneerdj.com/en/support/software/"},
+    {"os": "Firmware", "name": "DJM-A9 firmware 1.19 (Jan 2026), via Firmware Update Manager", "url": "https://www.pioneerdj.com/en/news/2026/djm-a9-firmware-update-119/"}
+  ],
+  "manuals": [
+    {"title": "Operating Instructions (select DJM-A9)", "url": "https://www.pioneerdj.com/en/support/documents/"},
+    {"title": "Operating Instructions (rental-house mirror)", "url": "https://cdn01.4wall.com/cms/rentals/files/f6835eb526b3d2.pdf"},
+    {"title": "VirtualDJ setup guide", "url": "https://virtualdj.com/manuals/hardware/pioneer/djma9/setup.html"},
+    {"title": "VirtualDJ mixer layout", "url": "https://virtualdj.com/manuals/hardware/pioneer/djma9/mixer.html"}
+  ],
+  "serviceManual": {"available": false, "notes": "Not public. Pioneer DJ issues RRV-numbered service manuals to authorized service centers; legacy DJM RRVs are sold by parts dealers (e.g. avlgear). No public RRV found for DJM-A9."},
+  "setup": ["Install the DJM-A9 driver and reboot. Connect USB-C (USB-A or USB-B labelled port) to the computer.", "Close rekordbox/Serato. Press the MIDI ON/START button so it lights.", "Note the MIDI channel from Utility/My Settings."],
+  "failureModes": ["Crossfader (MAGVEL, contactless) bleed/cut-in or curve error", "Scratchy channel faders, dead zones, bleed at minimum", "Noisy TRIM/EQ/COLOR pots, weak EQ kill", "Headphone jack crackle on either output", "Mic phantom or preamp hiss", "Beat FX touch display / X-PAD dead spots", "USB-C wear, driver dropouts", "Phono hum, one-sided master", "Bluetooth pairing", "Failed firmware update"],
+  "sections": [
+    {"id": "conn", "name": "Driver & MIDI on", "tests": [
+      {"id": "a9-driver", "name": "Driver and ports", "type": "manual", "steps": ["Windows Sound settings should show the DJM-A9 playback and recording devices.", "The Setting Utility should open and show the mixer.", "MIDItest should list a DJM-A9 MIDI input. Write its exact name in the notes."]},
+      {"id": "a9-any", "name": "MIDI output enabled", "type": "any", "minMessages": 5, "steps": ["Press MIDI ON so it lights, then move any fader."]}
+    ]},
+    {"id": "faders", "name": "Faders", "tests": [
+      {"id": "a9-chfader", "name": "Channel faders 1–4 full travel", "type": "range", "kinds": ["cc"], "count": 4, "steps": ["Move each channel fader slowly bottom → top → bottom, one at a time.", "Each must reach 0 and 127 with no large jumps (jumps = dirty or worn track)."]},
+      {"id": "a9-xfader", "name": "Crossfader full travel", "type": "range", "kinds": ["cc"], "count": 1, "steps": ["Move the crossfader slowly from left to right and back.", "Then do fast cuts: the values must stay continuous."]},
+      {"id": "a9-xbleed", "name": "Crossfader / channel fader bleed (audio)", "type": "manual", "steps": ["Play audio on CH1 assigned to crossfader side A. Move the crossfader fully to B: no audio should be heard (sharp curve).", "Repeat on side B. With channel faders at minimum, no audio should be heard on any channel."]}
+    ]},
+    {"id": "knobs", "name": "Knobs", "tests": [
+      {"id": "a9-trim", "name": "TRIM ×4", "type": "range", "kinds": ["cc"], "count": 4, "steps": ["Turn each channel TRIM fully counter-clockwise, then fully clockwise."]},
+      {"id": "a9-eq", "name": "EQ HI/MID/LOW ×4 channels", "type": "range", "kinds": ["cc"], "count": 12, "steps": ["Turn all 12 EQ knobs fully left and right, one at a time.", "Look for jumps (scratchy pot). Centre detents should land near 64."]},
+      {"id": "a9-color", "name": "COLOR knobs ×4 + PARAMETER", "type": "range", "kinds": ["cc"], "count": 5, "steps": ["Sweep each channel COLOR knob and the Sound Color FX PARAMETER knob end to end."]},
+      {"id": "a9-master", "name": "Master / booth / headphone / FX level knobs", "type": "range", "kinds": ["cc"], "count": 4, "steps": ["Sweep the remaining level knobs end to end: MASTER, BOOTH, Beat FX LEVEL/DEPTH, and headphone MIX/LEVEL (whichever send MIDI).", "Raise or lower the count in your notes to match what your unit sends."]}
+    ]},
+    {"id": "buttons", "name": "Buttons", "tests": [
+      {"id": "a9-cue", "name": "Channel CUE buttons (A & B headphones)", "type": "set", "kinds": ["note", "cc"], "count": 4, "requireRelease": true, "steps": ["Press each channel CUE button for headphone A, then the B ones if fitted."]},
+      {"id": "a9-cfx", "name": "Sound Color FX select buttons ×6", "type": "set", "kinds": ["note", "cc"], "count": 6, "requireRelease": true, "steps": ["Press each of the 6 Sound Color FX buttons."]},
+      {"id": "a9-beatfx", "name": "Beat FX controls (beat buttons, ON/OFF, select)", "type": "set", "kinds": ["note", "cc"], "count": 4, "requireRelease": true, "steps": ["Press the beat < / > buttons, Beat FX ON/OFF, and change the channel/effect select.", "Touch the X-PAD strip along its length."]},
+      {"id": "a9-xpad", "name": "X-PAD / touch strip", "type": "set", "kinds": ["note", "cc"], "count": 1, "steps": ["Tap and slide across the whole X-PAD. Note any dead spots."]}
+    ]},
+    {"id": "clock", "name": "MIDI clock", "tests": [
+      {"id": "a9-clock", "name": "MIDI clock output (optional)", "type": "clock", "steps": ["With audio playing and BPM detected, press MIDI START.", "Wait about 5 seconds. The BPM shown should match the mixer display, with low jitter. Skip this if your firmware sends no clock."]}
+    ]},
+    {"id": "audio", "name": "Audio interface", "tests": [
+      {"id": "a9-usbout", "name": "USB playback into channels", "type": "audio-out", "channels": 2, "steps": ["Set a channel's input selector to USB. Choose the DJM-A9 output (first stereo pair) and play Left, Right, then Both.", "The correct side of the channel meter must light. Repeat for the other USB pairs from the Setting Utility."]},
+      {"id": "a9-usbin", "name": "USB record (master/rec out)", "type": "audio-in", "channels": 2, "steps": ["Choose the DJM-A9 recording input and start the meter.", "Play a source through the mixer: both channels should show signal. Note the noise floor with nothing playing."]},
+      {"id": "a9-phones", "name": "Headphone outputs A & B", "type": "manual", "steps": ["Cue a channel to each headphone output. Sweep LEVEL and MIX on each.", "Wiggle the plugs: no crackle, and L and R should be equal."]},
+      {"id": "a9-mic", "name": "Mic inputs & phantom", "type": "manual", "steps": ["Test MIC1 with a condenser and phantom power on, and MIC2 with a dynamic mic. Check the EQ, mic FX and talk-over."]},
+      {"id": "a9-io", "name": "Master/booth/phono I/O", "type": "manual", "steps": ["Check master XLR and RCA, booth, rec and send/return.", "Phono inputs: listen for hum with the grounds connected.", "Bluetooth: pair a phone and play."]}
+    ]}
+  ]
+}

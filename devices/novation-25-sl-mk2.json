@@ -1,0 +1,55 @@
+{
+  "id": "novation-25-sl-mk2",
+  "name": "25 SL MkII (ReMOTE SL MkII)",
+  "maker": "Novation",
+  "category": "25-key controller keyboard with encoders, pots, pads",
+  "years": "2009",
+  "notes": "Works driverless as USB-MIDI. The Novation driver adds multi-client use and Port 2. Port 1 carries Advanced-mode template MIDI; Port 2 is Automap/host. Use Advanced mode (not Automap) for these tests so controls send their template MIDI. The template's CC and note numbers are user-configurable, so tests learn them live. Some range-wide specs (sliders, 32 buttons) belong to the 49/61 models; this database assumes no faders on the 25.",
+  "portHints": ["SL MkII", "SL MKII"],
+  "drivers": [
+    {"os": "Windows 10/11", "name": "Novation USB Driver 2.30.0.83 (optional; class driver also works)", "url": "https://downloads.focusrite.com/novation/sl-mkii/25-sl-mkii"},
+    {"os": "Windows 10/11", "name": "Automap 4.12 (discontinued; not needed for MIDI tests)", "url": "https://downloads.focusrite.com/novation/sl-mkii/25-sl-mkii"}
+  ],
+  "manuals": [
+    {"title": "SL MkII User Guide (EN)", "url": "https://fael-downloads-prod.focusrite.com/customer/prod/s3fs-public/novation/downloads/25432/english107.pdf"},
+    {"title": "SL MkII MIDI Programmer's Reference (community upload)", "url": "https://forum.renoise.com/uploads/short-url/iamofLoXW9QeA3weIspMHaXxl2t.pdf"},
+    {"title": "SL MkII troubleshooting guide", "url": "https://support.novationmusic.com/hc/de/articles/206690189-SL-MK-II-Zero-SL-MK-II-Troubleshooting-Guide"}
+  ],
+  "serviceManual": {"available": false, "notes": "Not public. Use Focusrite/Novation authorised service; schematic archives (none confirmed) or donor parts."},
+  "setup": ["Connect USB (or 9 V DC as well). Exit Automap, then select a factory Advanced-mode template.", "Select the 'SL MkII (Port 1)' input ('2- SL MkII' with the class driver)."],
+  "failureModes": ["Touch-sense false triggers or dead touch on encoders/pots", "Scratchy or jumping pots", "Encoder jitter", "Uneven key velocity, dead keys (dirty contacts)", "Drum pads hanging notes", "LCD backlight/segment failure", "LED-ring segment failure", "Worn USB or DC jack"],
+  "sections": [
+    {"id": "conn", "name": "Connection", "tests": [
+      {"id": "sl-ports", "name": "Ports & template mode", "type": "manual", "steps": ["Port 1 and Port 2 (driver) or the class-driver port should be visible. Write the names in the notes.", "The LCD should show an Advanced-mode template name, not Automap."]},
+      {"id": "sl-any", "name": "Any MIDI arrives", "type": "any", "minMessages": 3, "steps": ["Play a key."]}
+    ]},
+    {"id": "keys", "name": "Keybed", "tests": [
+      {"id": "sl-keys", "name": "All 25 keys", "type": "keys", "count": 25, "steps": ["Play every key from lowest to highest, one at a time, and release each.", "Gaps mean dead keys. Double-triggers or held notes mean dirty contacts."]},
+      {"id": "sl-vel", "name": "Velocity response", "type": "velocity", "softMax": 40, "hardMin": 110, "steps": ["Play several keys very softly, then very hard. The full spread should be reachable."]},
+      {"id": "sl-at", "name": "Channel aftertouch", "type": "pressure", "kinds": ["cp", "pp"], "count": 1, "minPeak": 100, "steps": ["Hold a key and press into the keybed. Channel pressure should rise to 100 or more and fall back to 0."]},
+      {"id": "sl-octave", "name": "Octave / transpose buttons", "type": "manual", "steps": ["Press octave up, then play a key: the note number shown in the Monitor should rise by 12. Repeat for down and transpose."]}
+    ]},
+    {"id": "perf", "name": "Wheels, XY pad & pedals", "tests": [
+      {"id": "sl-pb", "name": "Pitch bend", "type": "bend", "centerReturns": 3, "steps": ["Push the pitch control fully up and down, letting it spring back to centre 3 times.", "The rest value must return to centre (offset near 0)."]},
+      {"id": "sl-mod", "name": "Modulation", "type": "range", "kinds": ["cc"], "count": 1, "steps": ["Move the mod wheel/control slowly from minimum to maximum."]},
+      {"id": "sl-xy", "name": "X/Y touchpad", "type": "range", "kinds": ["cc", "pb"], "count": 2, "steps": ["Slide a finger to all four edges of the XY pad, so X and Y each reach their minimum and maximum."]},
+      {"id": "sl-pedals", "name": "Sustain, expression, footswitch inputs", "type": "set", "kinds": ["cc", "note"], "count": 2, "requireRelease": true, "steps": ["Plug in the sustain pedal and press/release it. Then connect expression (sweep) and footswitch if available.", "Lower the count in your notes if you don't have both pedals."]}
+    ]},
+    {"id": "controls", "name": "Encoders, pots & pads", "tests": [
+      {"id": "sl-enc", "name": "8 endless encoders", "type": "encoder", "count": 8, "minSteps": 4, "steps": ["Turn each encoder 4+ steps each way. The LED ring should follow."]},
+      {"id": "sl-pots", "name": "8 absolute pots full travel", "type": "range", "kinds": ["cc"], "count": 8, "steps": ["Turn each pot slowly fully left, then fully right. Each must hit 0 and 127 without jumps."]},
+      {"id": "sl-touch", "name": "Touch sensing on encoders/pots", "type": "set", "kinds": ["cc", "note"], "count": 4, "steps": ["If touch-sense is enabled in the template, touch and release a few encoders and pots without turning them.", "False triggers from touching nothing = fault. Skip this test if touch-sense is off."]},
+      {"id": "sl-pads", "name": "8 drum pads", "type": "set", "kinds": ["note", "cc"], "count": 8, "requireRelease": true, "steps": ["Hit each pad and release. A note left held after release = a hanging-note fault."]},
+      {"id": "sl-padvel", "name": "Pad velocity range", "type": "set", "kinds": ["note"], "count": 8, "velocityRange": [40, 110], "steps": ["Hit every pad soft and hard."]}
+    ]},
+    {"id": "buttons", "name": "Buttons & transport", "tests": [
+      {"id": "sl-transport", "name": "Transport ×6 (Rew, FF, Stop, Play, Loop, Rec)", "type": "set", "kinds": ["note", "cc"], "count": 6, "requireRelease": true, "steps": ["Press each transport button."]},
+      {"id": "sl-rowbtn", "name": "Row / select buttons", "type": "set", "kinds": ["note", "cc"], "count": 8, "requireRelease": true, "steps": ["Press each row button next to the encoders and pots. Adjust the count in your notes to your template."]},
+      {"id": "sl-led", "name": "Button LED feedback (echo)", "type": "midi-out", "echo": "sl-rowbtn", "steps": ["Select 'SL MkII (Port 1)' as the device out and press Send. Note which LEDs light. LED rings need the Automap/Programmer's Reference commands, so 'no response' is a finding."]}
+    ]},
+    {"id": "hw", "name": "Display & DIN ports", "tests": [
+      {"id": "sl-lcd", "name": "LCD (2×72 chars)", "type": "manual", "steps": ["Check the backlight, contrast and that every character cell renders while scrolling templates."]},
+      {"id": "sl-din", "name": "MIDI Out → MIDI In loopback", "type": "din-loopback", "count": 64, "steps": ["Connect a 5-pin cable from MIDI OUT 1 to MIDI IN. Route the computer → MIDI Out port (see manual: Port 2/Out routing) and run.", "Repeat with OUT 2 and note the result."]}
+    ]}
+  ]
+}

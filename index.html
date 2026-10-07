@@ -28,7 +28,7 @@
 </section>
 
 <nav class="tabs" aria-label="Diagnostic views">
-  <button class="tab active" data-view="quick">Quick Test</button><button class="tab" data-view="monitorView">Monitor</button><button class="tab" data-view="controlsView">Controls</button><button class="tab" data-view="keyboardView">Keyboard</button><button class="tab" data-view="timingView">Timing</button><button class="tab" data-view="outputView">Output</button><button class="tab" data-view="mappingView">Mapping</button><button class="tab" data-view="reportView">Report</button>
+  <button class="tab active" data-view="quick">Quick Test</button><button class="tab" data-view="devicesView">Device Tests</button><button class="tab" data-view="monitorView">Monitor</button><button class="tab" data-view="controlsView">Controls</button><button class="tab" data-view="keyboardView">Keyboard</button><button class="tab" data-view="timingView">Timing</button><button class="tab" data-view="outputView">Output</button><button class="tab" data-view="mappingView">Mapping</button><button class="tab" data-view="reportView">Report</button>
 </nav>
 
 <section id="quick" class="view active-view">
@@ -42,6 +42,8 @@
     <article class="panel"><h2>Observed inventory</h2><div id="inventory"></div></article>
   </div>
 </section>
+
+<section id="devicesView" class="view"><article class="panel"><p class="muted">Loading device database…</p></article></section>
 
 <section id="monitorView" class="view">
   <article class="panel monitor-panel">
@@ -131,5 +133,7 @@
 
 <footer>MIDItest by <a href="https://djshellshoxxx.github.io/circuitdriftlabs/">Circuit Drift Labs</a></footer>
 <script type="module" src="./app-v2.js"></script>
-<script type="module" src="./ui-assistance.js"></script>\n</body>
+<script type="module" src="./ui-assistance.js"></script>
+<script type="module" src="./device-tests.js"></script>
+</body>
 </html>
