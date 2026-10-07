@@ -50,18 +50,26 @@ Experiments:
 - Binaural Web Beats: https://djshellshoxxx.github.io/binerualwebeats/
 - BabbleForge: https://djshellshoxxx.github.io/babbleforge/
 
+## Windows desktop app
+
+A Windows build (installer and portable `.exe`) is published on the [Releases page](https://github.com/djshellshoxxx/Miditest/releases). It packages the same static app in Electron, serves it from a secure local `app://` origin so Web MIDI works offline, and grants only MIDI, SysEx and clipboard permissions. External links open in your normal browser.
+
+The beta builds are not code-signed, so Windows SmartScreen may warn on first launch (More info → Run anyway).
+
 ## Development
 
-The app is static HTML/CSS/JavaScript.
+The app is static HTML/CSS/JavaScript; `midi-core.js` holds the pure analysis functions and `app-v2.js` the UI.
 
 ```bash
-node tests/core.test.mjs
-node tests/ui-static.test.mjs
-node --input-type=module --check < app-v2.js
-node --input-type=module --check < midi-core.js
+npm install                          # dev tooling: Playwright, Electron, electron-builder
+npm test                             # core unit tests, static UI contract, module parse checks
+npx playwright install chromium      # once, for browser tests
+npm run test:browser                 # headless Chromium with a mock Web MIDI device
+npm start                            # run the desktop app locally
+npm run dist:win                     # build Windows installer + portable exe into dist/ (run on Windows)
 ```
 
-GitHub Actions runs the core tests, static UI contract and module syntax checks. GitHub Pages deploys only from `main` after the test job succeeds.
+GitHub Actions runs all tests on pull requests and on `main`. GitHub Pages deploys only from `main` after the tests pass. Pushing a tag starting with `v` builds the Windows exe on a Windows runner and publishes it as a GitHub release (`.github/workflows/release.yml`).
 
 ## Specifications
 

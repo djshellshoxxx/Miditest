@@ -33,11 +33,19 @@ export function deadZones(values=[],expectedMax=127,minGap=4){
   return out;
 }
 
+// Stationary jitter: mean amplitude of back-and-forth reversals in the recent window.
+// A smooth sweep (monotonic movement) produces no reversals and therefore no jitter.
+export function stationaryJitter(values=[],window=20){
+  const tail=values.slice(-Math.min(window,values.length)),amps=[];let prev=0;
+  for(let i=1;i<tail.length;i++){const d=tail[i]-tail[i-1];if(!d)continue;if(prev&&Math.sign(d)!==Math.sign(prev))amps.push(Math.min(Math.abs(d),Math.abs(prev)));prev=d}
+  return amps.length>=2?mean(amps):0;
+}
+
 export function controlStats(values=[]){
   if(!values.length)return {count:0,min:null,max:null,range:0,coverage:0,unique:0,skipped:0,repeated:0,jitter:0,jumps:0,reversals:0,deadZones:[],eventRate:0};
   const min=Math.min(...values),max=Math.max(...values);let jumps=0,reversals=0,lastDir=0,repeated=0;
   for(let i=1;i<values.length;i++){const delta=values[i]-values[i-1];if(Math.abs(delta)>12)jumps++;if(delta===0)repeated++;const dir=Math.sign(delta);if(dir&&lastDir&&dir!==lastDir)reversals++;if(dir)lastDir=dir}
-  const tail=values.slice(-Math.min(20,values.length)),j=stdev(tail)||0,unique=new Set(values).size;
+  const j=stationaryJitter(values),unique=new Set(values).size;
   return {count:values.length,min,max,range:max-min,coverage:Number(((max-min)/127*100).toFixed(1)),unique,skipped:Math.max(0,(max-min+1)-unique),repeated,jitter:Number(j.toFixed(2)),jumps,reversals,deadZones:deadZones(values)};
 }
 
@@ -47,11 +55,28 @@ export function velocityStats(values=[]){
   return {count:values.length,min:Math.min(...values),max:Math.max(...values),mean:Number(mean(values).toFixed(2)),median:median(values),stdev:Number(stdev(values).toFixed(2)),range:Math.max(...values)-Math.min(...values),histogram:hist};
 }
 
-export function pitchStats(values=[]){
-  if(!values.length)return {count:0,min:null,max:null,center:null,centerSpread:null,negativeTravel:0,positiveTravel:0,asymmetry:null};
-  const min=Math.min(...values),max=Math.max(...values),near=values.filter(v=>Math.abs(v)<1024),center=mean(near),spread=stdev(near),neg=Math.abs(Math.min(0,min)),pos=Math.max(0,max);
-  return {count:values.length,min,max,center:center===null?null:Math.round(center),centerSpread:spread===null?null:Math.round(spread),negativeTravel:neg,positiveTravel:pos,asymmetry:Math.abs(neg-pos)};
+// Pitch-bend resting samples: near-center values the wheel settled on (no further bend for restMs, or the latest value).
+// Without timestamps every near-center value is treated as a resting sample.
+export function pitchRestSamples(values=[],times=null,restMs=150,nearCenter=1024){
+  const out=[];for(let i=0;i<values.length;i++){if(Math.abs(values[i])>=nearCenter)continue;if(!times||i===values.length-1||times[i+1]-times[i]>=restMs)out.push(values[i])}return out;
 }
+export function pitchStats(values=[],times=null){
+  if(!values.length)return {count:0,min:null,max:null,center:null,centerSpread:null,centerSamples:0,negativeTravel:0,positiveTravel:0,asymmetry:null};
+  const min=Math.min(...values),max=Math.max(...values),near=pitchRestSamples(values,times),center=mean(near),spread=stdev(near),neg=Math.abs(Math.min(0,min)),pos=Math.max(0,max);
+  return {count:values.length,min,max,center:center===null?null:Math.round(center),centerSpread:spread===null?null:Math.round(spread),centerSamples:near.length,negativeTravel:neg,positiveTravel:pos,asymmetry:Math.abs(neg-pos)};
+}
+
+// Switch-type pedal/button behaviour: on/off transitions and quick re-triggers (possible contact bounce).
+export function switchStats(values=[],times=[],threshold=64,bounceMs=40){
+  let transitions=0,bounces=0,repeats=0,last=null,lastT=null;
+  for(let i=0;i<values.length;i++){const on=values[i]>=threshold,t=times[i]??null;if(last===null){last=on;lastT=t;continue}
+    if(on===last){repeats++;continue}transitions++;if(t!==null&&lastT!==null&&t-lastT<bounceMs)bounces++;last=on;lastT=t}
+  return {transitions,bounces,repeats,state:last===null?null:(last?'on':'off')};
+}
+
+export function summarize(values=[]){if(!values.length)return {count:0,min:null,max:null,mean:null,median:null,stdev:null};return {count:values.length,min:Math.min(...values),max:Math.max(...values),mean:Number(mean(values).toFixed(2)),median:median(values),stdev:Number(stdev(values).toFixed(2))}}
+
+export function rollingBpm(timestamps=[],ticks=24){if(timestamps.length<ticks+1)return null;const span=timestamps.at(-1)-timestamps.at(-1-ticks);return span>0?60000/span*(ticks/24):null}
 
 export function clockBpm(timestamps=[]){if(timestamps.length<25)return null;const diffs=[];for(let i=1;i<timestamps.length;i++){const d=timestamps[i]-timestamps[i-1];if(d>0&&d<500)diffs.push(d)}if(!diffs.length)return null;return 60000/(median(diffs)*24)}
 export function clockStats(timestamps=[]){
@@ -61,9 +86,13 @@ export function clockStats(timestamps=[]){
   const histogram=Array(12).fill(0);if(diffs.length){const lo=Math.min(...diffs),hi=Math.max(...diffs),span=Math.max(0.0001,hi-lo);for(const d of diffs)histogram[Math.min(11,Math.floor((d-lo)/span*12))]++}return {count:timestamps.length,bpm:clockBpm(timestamps),intervalMean:m===null?null:Number(m.toFixed(3)),jitter:dev.length?Number(mean(dev).toFixed(3)):null,peakJitter:dev.length?Number(Math.max(...dev).toFixed(3)):null,intervalMin:diffs.length?Math.min(...diffs):null,intervalMax:diffs.length?Math.max(...diffs):null,histogram};
 }
 
+// Two-state CC streams that include 0 (e.g. 0/127 buttons and sustain switches). Relative encoders (1/127, 63/65) never send 0.
+export function isSwitchLike(values=[]){if(values.length<2)return false;const set=new Set(values);return set.size===2&&set.has(0)&&Math.max(...values)>=64}
+
 export function classifyEncoder(values=[]){
-  if(values.length<4)return 'Insufficient data';
   const min=Math.min(...values),max=Math.max(...values),set=new Set(values);
+  if(isSwitchLike(values))return 'Switch / button (on/off)';
+  if(values.length<4)return 'Insufficient data';
   if(min>=0&&max<=127&&set.size>16)return 'Absolute 0–127';
   const count=v=>values.filter(x=>x===v).length/values.length;
   if(count(1)+count(127)>.7)return 'Likely relative two\'s complement / increment-decrement';
@@ -140,7 +169,18 @@ export function channelStats(events=[]){
 export function performanceStats(events=[]){
   const pair=analyzeNotePairs(events),ons=events.filter(e=>e.kind==='noteon').sort((a,b)=>a.t-b.t),inter=[];for(let i=1;i<ons.length;i++)inter.push(ons[i].t-ons[i-1].t);
   const byKey={},groups=[];for(const e of ons){if(!byKey[e.a])byKey[e.a]=[];byKey[e.a].push(e.b);const g=groups.at(-1);if(g&&e.t-g.start<=12){g.notes.push(e.a);g.spread=e.t-g.start}else groups.push({start:e.t,spread:0,notes:[e.a]})}
-  return {notes:ons.map(e=>{const p=pair.completed.find(x=>x.channel===e.channel&&x.note===e.a&&x.start===e.t);return {note:e.a,channel:e.channel,velocity:e.b,t:e.t,duration:p?.duration??null}}),interOnset:inter,simultaneousGroups:groups.filter(g=>g.notes.length>1),velocityByKey:Object.fromEntries(Object.entries(byKey).map(([k,v])=>[k,velocityStats(v)])),held:pair.stuck};
+  const done=new Map(pair.completed.map(x=>[x.channel+':'+x.note+':'+x.start,x.duration])),notes=ons.map(e=>({note:e.a,channel:e.channel,velocity:e.b,t:e.t,duration:done.get(e.channel+':'+e.a+':'+e.t)??null})),chords=groups.filter(g=>g.notes.length>1);
+  return {notes,interOnset:inter,simultaneousGroups:chords,durationStats:summarize(notes.map(n=>n.duration).filter(Number.isFinite)),interOnsetStats:summarize(inter),chordSpreadStats:summarize(chords.map(g=>g.spread)),velocityByKey:Object.fromEntries(Object.entries(byKey).map(([k,v])=>[k,velocityStats(v)])),held:pair.stuck};
 }
 
-export function reportSummary(state){return {version:2,device:state.device||'',started:state.started||null,durationMs:state.started?Date.now()-state.started:0,eventCount:state.events?.length||0,keys:[...(state.keys||[])].sort((a,b)=>a-b),channels:[...(state.channels||[])].sort((a,b)=>a-b),messageCounts:state.messageCounts||{},disconnects:state.disconnects||0,controls:state.controls||{},pitch:state.pitch||{}}}
+export function reportSummary(state){return {version:REPORT_VERSION,device:state.device||'',started:state.started||null,durationMs:state.started?Date.now()-state.started:0,eventCount:state.events?.length||0,keys:[...(state.keys||[])].sort((a,b)=>a-b),channels:[...(state.channels||[])].sort((a,b)=>a-b),messageCounts:state.messageCounts||{},disconnects:state.disconnects||0,controls:state.controls||{},pitch:state.pitch||{}}}
+
+export const REPORT_VERSION=2;
+export function validateReport(obj){
+  if(!obj||typeof obj!=='object'||Array.isArray(obj))return 'Report is not a JSON object.';
+  if(typeof obj.version!=='number'||obj.version<1||obj.version>REPORT_VERSION)return 'Unsupported report version: '+(obj.version??'missing')+'.';
+  if(typeof obj.eventCount!=='number')return 'Report is missing eventCount.';
+  if(obj.keys!==undefined&&!Array.isArray(obj.keys))return 'Report keys must be an array.';
+  if(obj.controls!==undefined&&(typeof obj.controls!=='object'||obj.controls===null))return 'Report controls must be an object.';
+  return null;
+}

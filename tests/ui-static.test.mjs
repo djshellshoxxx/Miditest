@@ -11,7 +11,11 @@ assert.match(html,/id="quick"/);
 for(const view of ['monitorView','controlsView','keyboardView','timingView','outputView','mappingView','reportView'])assert.match(html,new RegExp('id="'+view+'"'));
 
 const ids=[...app.matchAll(/'([A-Za-z][A-Za-z0-9]+)'/g)].map(m=>m[1]);
-const required=['connect','input','output','guided','monitor','controls','keyboard','runLoopback','exportReport','helpDialog'];
+const required=['connect','input','output','guided','guidedEnd','monitor','controls','keyboard','runLoopback','loopRounds','exportReport','helpDialog','sysexStats','pitchStats','mpeStats','clockHistogram'];
+const used=[...app.matchAll(/^const ids=\[([^\]]+)\]/gms)][0][1].replace(/\n/g,'').match(/'([^']+)'/g).map(x=>x.slice(1,-1));
+for(const id of used)assert.match(html,new RegExp('id="'+id+'"'),'app-v2.js references missing DOM id '+id);
+assert.doesNotMatch(html,/\son[a-z]+="/,'no inline event handlers');
+assert.doesNotMatch(html+app,/\\n(function|<\/body>|\[els)/,'no literal \\n artifacts');
 for(const id of required)assert.match(html,new RegExp('id="'+id+'"'),'missing DOM id '+id);
 
 assert.match(css,/:focus-visible/);
