@@ -1,6 +1,7 @@
 // MIDItest desktop shell: serves the static web app from a privileged app:// origin so Web MIDI
 // (which requires a secure context) works offline, and grants only MIDI-related permissions.
-const {app,BrowserWindow,protocol,net,session,shell,Menu}=require('electron');
+const {app,BrowserWindow,protocol,net,session,shell,Menu,ipcMain}=require('electron');
+const {runWindowsScan}=require('./winscan.cjs');
 const path=require('node:path');
 const {pathToFileURL}=require('node:url');
 
@@ -26,7 +27,7 @@ function createWindow(){
     width:1360,height:900,minWidth:420,minHeight:500,
     title:'MIDItest',backgroundColor:'#07101a',
     icon:path.join(ROOT,'build','icon.png'),
-    webPreferences:{contextIsolation:true,sandbox:true,nodeIntegration:false}
+    webPreferences:{contextIsolation:true,sandbox:true,nodeIntegration:false,preload:path.join(__dirname,'preload.cjs')}
   });
   win.webContents.setWindowOpenHandler(({url})=>{openExternal(url);return {action:'deny'}});
   win.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith(ORIGIN+'/')){event.preventDefault();openExternal(url)}});
@@ -38,6 +39,10 @@ app.on('second-instance',()=>{const [win]=BrowserWindow.getAllWindows();if(win){
 
 app.whenReady().then(()=>{
   protocol.handle('app',serveApp);
+  ipcMain.handle('miditest:winscan',(event,days)=>{
+    if(!event.senderFrame||!event.senderFrame.url.startsWith(ORIGIN+'/'))return {error:'Untrusted sender.'};
+    return runWindowsScan(ROOT,days);
+  });
   session.defaultSession.setPermissionRequestHandler((_wc,permission,callback)=>callback(ALLOWED_PERMISSIONS.has(permission)));
   session.defaultSession.setPermissionCheckHandler((_wc,permission)=>ALLOWED_PERMISSIONS.has(permission));
   Menu.setApplicationMenu(Menu.buildFromTemplate([
