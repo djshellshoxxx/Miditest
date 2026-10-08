@@ -14,6 +14,10 @@ Implemented diagnostics include live decoded/raw monitoring with search and filt
 
 MIDItest reports measured observations. It does not turn one browser session into a definitive repair diagnosis.
 
+## Advanced tests and Windows log analysis
+
+The **Tests** tab adds ten analyses of the live capture (protocol audit, link health, double-trigger, velocity response, rollover, sweep linearity, encoder integrity, pitch-bend return, pedal polarity and a loopback burst test). Each card explains how to run it and what the result means. The **Windows Logs** tab reads the Windows Event Log, Device Manager state, services, USB power setting, `setupapi.dev.log` and crash reports for MIDI/USB errors and explains each one (live in the Windows desktop app; via a copy-paste PowerShell script or file import in a browser). Full spec: `docs/specs/2026-10-08-advanced-tests-and-windows-logs-spec.md`.
+
 ## Interface
 
 The modern workspace is organized into:
@@ -25,6 +29,8 @@ The modern workspace is organized into:
 - Timing
 - Output
 - Mapping
+- Tests
+- Windows Logs
 - Report
 
 The full GUI contract is in `docs/specs/2026-10-06-modern-gui-spec.md`. Functional clarifications and acceptance criteria are in `docs/specs/2026-10-06-complete-functional-spec.md`.

@@ -20,3 +20,10 @@ button.control-card.selected{background:#10202d;border-radius:7px}
 .report-table th,.report-table td{text-align:left;padding:6px 8px;border-top:1px solid #1c2935;vertical-align:top}
 .report-table th[scope="row"]{width:42%;color:var(--muted);font-weight:600}
 @media print{.report-table th,.report-table td{border-color:#999;color:#000}.finding .badge{color:#000!important}}
+
+.test-card{margin-bottom:12px}.test-card h4{margin:14px 0 4px}.test-card p{margin:4px 0}.test-card details{margin-top:10px;border-top:1px solid #1d2935;padding-top:8px}
+.test-rows{margin-top:8px;border-top:1px solid #1c2935;padding-top:6px;font-size:13px;color:var(--muted)}
+.status-chip{font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--line2);white-space:nowrap;height:max-content}
+.status-chip.status-ok{border-color:#3e6b53;color:#a9d6bd}.status-chip.status-attention{border-color:#79613d;color:#efcf96}.status-chip.status-investigate{border-color:#7b4750;color:#efb7bf}
+.win-finding{border-top:1px solid #1d2935;padding:12px 0}.win-finding:first-child{border-top:0}.win-finding h3{margin:4px 0}.win-finding p{margin:4px 0}.win-finding .tag{font-size:11px;border:1px solid var(--line2);border-radius:99px;padding:2px 8px;margin-right:6px}
+.win-finding .tag.now{border-color:#7b4750;color:#efb7bf}.win-src{color:var(--muted);font-size:12px}

@@ -8,7 +8,7 @@ const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
 assert.match(html,/type="module" src="\.\/app-v2\.js"/);
 assert.doesNotMatch(html,/src="\.\/app\.js"/);
 assert.match(html,/id="quick"/);
-for(const view of ['monitorView','controlsView','keyboardView','timingView','outputView','mappingView','reportView'])assert.match(html,new RegExp('id="'+view+'"'));
+for(const view of ['monitorView','controlsView','keyboardView','timingView','outputView','mappingView','testsView','winlogView','reportView'])assert.match(html,new RegExp('id="'+view+'"'));
 
 const ids=[...app.matchAll(/'([A-Za-z][A-Za-z0-9]+)'/g)].map(m=>m[1]);
 const required=['connect','input','output','guided','guidedEnd','monitor','controls','keyboard','runLoopback','loopRounds','exportReport','helpDialog','sysexStats','pitchStats','mpeStats','clockHistogram'];

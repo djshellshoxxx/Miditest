@@ -132,6 +132,24 @@ try{
     await page.click('#clearLocal');
     assert.ok(await page.evaluate(()=>!localStorage.getItem('miditest-baseline-v2')));
 
+    // Advanced tests tab + burst test + Windows log import.
+    await tab(page,'testsView');await settle(page);
+    const tcards=await text(page,'#testResults');
+    assert.match(tcards,/Protocol conformance audit/);assert.match(tcards,/What this result means/);assert.match(tcards,/Sweep linearity/);
+    await page.fill('#burstCount','20');await page.click('#runBurst');await page.waitForTimeout(3500);
+    assert.match(await text(page,'#burstStatus'),/complete/i);
+    const burstCard=await text(page,'#testResults');assert.match(burstCard,/Instant burst: sent 20, received 20, lost 0/);
+    await tab(page,'winlogView');await settle(page);
+    assert.match(await text(page,'#winResults'),/No Windows scan yet/);
+    assert.ok(await page.locator('#winScan').isDisabled(),'live scan disabled outside desktop app');
+    await page.setInputFiles('#winImport',{name:'miditest-windows-scan.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({generated:'2026-10-08T10:00:00Z',days:7,os:'Win',events:[{time:'2026-10-08T10:00:00Z',log:'System',provider:'Microsoft-Windows-Kernel-PnP',id:219,level:2,message:'The driver \\Driver\\usbaudio failed to load for the device USB\\VID_1'}],devices:[{name:'USB Audio Device',id:'USB\\VID_1',errorCode:43,class:'MEDIA'}],services:[],setupapi:[],wer:[]}))});await settle(page);
+    const win=await text(page,'#winResults');assert.match(win,/failed to load/i);assert.match(win,/Code 43/);assert.match(win,/What it means/);
+    await page.setInputFiles('#winImport',{name:'setupapi.dev.log',mimeType:'text/plain',buffer:Buffer.from('>>>  [Device Install - USB\\VID_1]\n<<<  [Exit status: FAILURE(0xe0000228)]\n')});await settle(page);
+    assert.match(await text(page,'#winResults'),/No compatible drivers/);
+    await tab(page,'reportView');await settle(page);
+    const rj=JSON.parse(await page.locator('#reportPreview').textContent());
+    assert.ok(rj.advancedTests.length===10&&rj.windowsLogs.findings.length>=2&&rj.logFiles.length===1);
+
     await page.click('[data-view="outputView"]');await page.click('#panicAll');
     assert.ok(await page.evaluate(()=>window.__sent.filter(b=>(b[0]&0xF0)===0xB0&&b[1]===123).length===16));
     assert.deepEqual(errors,[]);await page.close()}
