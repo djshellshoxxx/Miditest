@@ -1,5 +1,8 @@
-const CACHE = 'mirror-me-v1';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.json', 'icon.svg'];
+const CACHE = 'cypherpunk-toolkit-v1';
+const FILES = [
+  './', 'index.html', 'style.css', 'vendor.js', 'core.js', 'wallet.js', 'split.js',
+  'hide.js', 'pgp.js', 'mirror.js', 'manifest.json', 'icon.svg'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

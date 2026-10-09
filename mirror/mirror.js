@@ -1,28 +1,14 @@
 (() => {
   'use strict';
+  const { $, enc, dec, b64, unb64, save, copyText, status, kb } = window.TK;
 
   // Every file that makes up this site. Keep in sync with sw.js.
-  const FILES = ['index.html', 'style.css', 'app.js', 'manifest.json', 'icon.svg', 'sw.js'];
-  const $ = id => document.getElementById(id);
-  const enc = new TextEncoder();
-  const dec = new TextDecoder();
-
-  const say = t => { $('msg').textContent = t; };
-
-  /* ---------- base64 ---------- */
-  function b64(bytes) {
-    let s = '';
-    for (let i = 0; i < bytes.length; i += 0x8000) {
-      s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-    }
-    return btoa(s);
-  }
-  function unb64(str) {
-    const s = atob(str);
-    const out = new Uint8Array(s.length);
-    for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
-    return out;
-  }
+  const FILES = [
+    'index.html', 'style.css', 'vendor.js', 'core.js', 'wallet.js', 'split.js',
+    'hide.js', 'pgp.js', 'mirror.js', 'manifest.json', 'icon.svg', 'sw.js'
+  ];
+  const DIR = 'cypherpunk-toolkit';
+  const say = (t, bad) => status('mirrorMsg', t, bad);
 
   /* ---------- SHA-256 (pure JS so it works on plain http too) ---------- */
   const K = new Uint32Array([
@@ -180,7 +166,7 @@
     return {
       name: 'README-REHOST.txt',
       data: enc.encode([
-        'MIRROR ME KIT - how to host this copy',
+        'CYPHERPUNK TOOLKIT - how to host this copy',
         '',
         'This folder is a complete static website. There is nothing to install or build.',
         '',
@@ -191,7 +177,7 @@
         'To put it online, upload every file in this folder to any static host:',
         'GitHub Pages, Netlify, Cloudflare Pages, an nginx/Caddy box, or IPFS.',
         '',
-        'Keep the files together and unmodified so the hashes on the page still match.',
+        'Keep the files together and unmodified so the hashes on the Mirror tab still match.',
         ''
       ].join('\n'))
     };
@@ -204,17 +190,21 @@
     const bundle = JSON.stringify(files.map(f => ({ n: f.name, d: b64(f.data) })));
     let html = dec.decode(byName(files, 'index.html'));
     const css = dec.decode(byName(files, 'style.css'));
-    const js = dec.decode(byName(files, 'app.js'));
     const icon = 'data:image/svg+xml;base64,' + b64(byName(files, 'icon.svg'));
+    let first = true;
 
     html = html
       .replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, () => '<meta http-equiv="Content-Security-Policy" content="' + csp + '">')
       .replace(/<link rel="manifest"[^>]*>\n?/, () => '')
       .replace(/<link rel="icon"[^>]*>/, () => '<link rel="icon" href="' + icon + '">')
       .replace(/<link rel="stylesheet" href="style\.css">/, () => '<style>' + css + '</style>')
-      .replace(/<script src="app\.js"><\/script>/, () =>
-        '<script type="application/json" id="bundle">' + bundle + closeScript +
-        '<script>' + js + closeScript);
+      .replace(/<script src="([^"]+)"><\/script>/g, (m, src) => {
+        // Defence in depth: a literal "</script" inside inlined code would end the tag early.
+        const code = dec.decode(byName(files, src)).replace(/<\/script/gi, '<\\/script');
+        const prefix = first ? '<script type="application/json" id="bundle">' + bundle + closeScript : '';
+        first = false;
+        return prefix + '<script>' + code + closeScript;
+      });
     return new Blob([html], { type: 'text/html' });
   }
 
@@ -224,103 +214,78 @@
     return out.join('\n');
   }
 
+  async function gzip(bytes) {
+    if (typeof CompressionStream === 'undefined') return null;
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+
   // Safe to paste straight into an interactive shell: everything runs inside a subshell,
   // so "set -e" can never close your terminal session.
-  function buildScript(files) {
+  async function buildScript(files) {
     const all = files.concat([readmeFile()]);
-    let s = '(\nset -e\nD=mirror-me\nmkdir -p "$D"\ncd "$D"\n';
+    let s = '(\nset -e\nD=' + DIR + '\nmkdir -p "$D"\ncd "$D"\n';
     for (const f of all) {
-      s += 'base64 -d > "' + f.name + '" <<\'MIRROR_EOF\'\n' + wrap(b64(f.data), 76) + '\nMIRROR_EOF\n';
+      const gz = await gzip(f.data);
+      if (gz && gz.length < f.data.length) {
+        s += 'base64 -d <<\'MIRROR_EOF\' | gunzip > "' + f.name + '"\n' + wrap(b64(gz), 76) + '\nMIRROR_EOF\n';
+      } else {
+        s += 'base64 -d > "' + f.name + '" <<\'MIRROR_EOF\'\n' + wrap(b64(f.data), 76) + '\nMIRROR_EOF\n';
+      }
     }
     s += 'if command -v sha256sum >/dev/null 2>&1; then\nsha256sum -c <<\'MIRROR_SUMS\'\n';
     for (const f of all) s += sha256(f.data) + '  ' + f.name + '\n';
     s += 'MIRROR_SUMS\nfi\n';
-    s += 'echo\necho "Done. Files are in: $(pwd)"\necho "Serve them with:  cd mirror-me && python3 -m http.server 8080"\n)\n';
+    s += 'echo\necho "Done. Files are in: $(pwd)"\necho "Serve them with:  cd ' + DIR + ' && python3 -m http.server 8080"\n)\n';
     return s;
   }
-
-  /* ---------- download / clipboard helpers ---------- */
-  function save(blob, name) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-  }
-
-  async function copyText(text) {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch (e) { /* fall through */ }
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand('copy');
-      ta.remove();
-      return ok;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  const kb = n => (n / 1024).toFixed(1) + ' KB';
 
   /* ---------- buttons ---------- */
   let zipBlob = null;
 
   async function prepare() {
     const files = await loadFiles();
-    zipBlob = buildZip(files.concat([readmeFile()]));
+    if (!zipBlob) zipBlob = buildZip(files.concat([readmeFile()]));
     return files;
   }
 
   $('btnZip').addEventListener('click', async () => {
     try {
       const files = await prepare();
-      save(zipBlob, 'mirror-me.zip');
+      save(zipBlob, DIR + '.zip');
       say('ZIP saved: ' + (files.length + 1) + ' files, ' + kb(zipBlob.size) + '. Unzip and upload to any static host.');
-    } catch (e) { say('Could not build the ZIP: ' + e.message); }
+    } catch (e) { say('Could not build the ZIP: ' + e.message, true); }
   });
 
   $('btnSingle').addEventListener('click', async () => {
     try {
       const files = await loadFiles();
       const blob = buildSingle(files);
-      save(blob, 'mirror-me.html');
+      save(blob, DIR + '.html');
       say('Single file saved (' + kb(blob.size) + '). Open it directly or host that one file.');
-    } catch (e) { say('Could not build the single file: ' + e.message); }
+    } catch (e) { say('Could not build the single file: ' + e.message, true); }
   });
 
   $('btnScript').addEventListener('click', async () => {
     try {
       const files = await loadFiles();
-      const script = buildScript(files);
+      say('Building installer...');
+      const script = await buildScript(files);
       if (await copyText(script)) {
         say('Copied (' + kb(script.length) + '). Paste into your terminal and press Enter.');
       } else {
-        save(new Blob([script], { type: 'text/plain' }), 'mirror-me-install.sh');
-        say('Clipboard blocked here, so the installer was downloaded instead. Run it with: sh mirror-me-install.sh');
+        save(new Blob([script], { type: 'text/plain' }), DIR + '-install.sh');
+        say('Clipboard blocked here, so the installer was downloaded instead. Run it with: sh ' + DIR + '-install.sh');
       }
-    } catch (e) { say('Could not build the installer: ' + e.message); }
+    } catch (e) { say('Could not build the installer: ' + e.message, true); }
   });
 
   $('btnShare').addEventListener('click', async () => {
     try {
-      const file = new File([zipBlob], 'mirror-me.zip', { type: 'application/zip' });
-      await navigator.share({ files: [file], title: 'Mirror Me Kit' });
+      const file = new File([zipBlob], DIR + '.zip', { type: 'application/zip' });
+      await navigator.share({ files: [file], title: 'Cypherpunk Toolkit' });
     } catch (e) {
-      if (e.name !== 'AbortError') say('Share failed: ' + e.message);
+      if (e.name !== 'AbortError') say('Share failed: ' + e.message, true);
     }
   });
 
@@ -339,16 +304,7 @@
     $('btnInstall').hidden = true;
   });
 
-  /* ---------- status line ---------- */
-  function paintNet() {
-    const on = navigator.onLine;
-    $('net').className = 'dot ' + (on ? 'on' : 'off');
-    $('netTxt').textContent = on ? 'online' : 'offline';
-  }
-  window.addEventListener('online', paintNet);
-  window.addEventListener('offline', paintNet);
-  paintNet();
-
+  /* ---------- status line + service worker ---------- */
   const single = !!$('bundle');
   const web = location.protocol === 'http:' || location.protocol === 'https:';
   $('modeTxt').textContent = single ? 'running: single-file copy' : web ? 'running: hosted copy' : 'running: local files';
@@ -383,7 +339,7 @@
       $('bundleHash').textContent = sha256(enc.encode(rows.join('\n')));
 
       if (navigator.canShare && navigator.share) {
-        const probe = new File([zipBlob], 'mirror-me.zip', { type: 'application/zip' });
+        const probe = new File([zipBlob], DIR + '.zip', { type: 'application/zip' });
         if (navigator.canShare({ files: [probe] })) $('btnShare').hidden = false;
       }
     } catch (e) {

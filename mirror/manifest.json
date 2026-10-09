@@ -1,7 +1,7 @@
 {
-  "name": "Mirror Me Kit",
-  "short_name": "MirrorMe",
-  "description": "A site that packages itself so anyone can re-host it.",
+  "name": "Cypherpunk Toolkit",
+  "short_name": "Toolkit",
+  "description": "Offline wallet, secret splitting, steganography, PGP and a self-replicating mirror kit.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
