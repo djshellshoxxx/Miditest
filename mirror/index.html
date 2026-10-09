@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; form-action 'none'; base-uri 'none'">
+<title>Mirror Me Kit</title>
+<meta name="description" content="A site that packages itself. Download it, copy it, host it anywhere in under a minute. Works offline.">
+<meta name="theme-color" content="#0b0f0c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>MIRROR ME KIT</h1>
+  <p class="tag">Takedowns only work on a single copy. This page makes every visitor a mirror.</p>
+  <p class="status"><span id="net" class="dot"></span><span id="netTxt">checking...</span> &middot; <span id="swTxt">offline cache: checking...</span> &middot; <span id="modeTxt"></span></p>
+</header>
+
+<main>
+  <section>
+    <h2>1. Grab a copy</h2>
+    <p>Each option produces a full working copy of this site. Pick whichever fits where you want to host it.</p>
+    <div class="grid">
+      <button id="btnZip">Download ZIP<small>All files, ready to upload to any static host</small></button>
+      <button id="btnSingle">Download single file<small>One .html with everything inside. Email it, USB it, open it offline</small></button>
+      <button id="btnScript">Copy shell installer<small>Paste into a terminal (PuTTY etc.) to rebuild the site in one go</small></button>
+      <button id="btnShare" hidden>Share files<small>Send the ZIP through your phone's share sheet</small></button>
+    </div>
+    <p id="msg" role="status"></p>
+  </section>
+
+  <section>
+    <h2>2. Host it somewhere (60 seconds each)</h2>
+    <details open>
+      <summary>Any Linux box or VPS (fastest, paste one thing)</summary>
+      <ol>
+        <li>Click <b>Copy shell installer</b> above.</li>
+        <li>Paste it into your terminal and press Enter. It creates a folder <code>mirror-me</code> with every file.</li>
+        <li>Serve it: <code>cd mirror-me &amp;&amp; python3 -m http.server 8080</code></li>
+        <li>Open <code>http://your-server-ip:8080/</code>. For HTTPS use Caddy: <code>caddy file-server --domain example.com --root .</code></li>
+      </ol>
+    </details>
+    <details>
+      <summary>GitHub Pages</summary>
+      <ol>
+        <li>Create a new repository and upload the unzipped files (drag and drop works on the GitHub web UI).</li>
+        <li>Go to Settings, then Pages, choose <i>Deploy from a branch</i>, pick <code>main</code> and <code>/ (root)</code>.</li>
+        <li>Your copy appears at <code>https://USER.github.io/REPO/</code>.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Netlify Drop (no account steps beyond signup)</summary>
+      <ol>
+        <li>Unzip the download.</li>
+        <li>Drag the folder onto <code>app.netlify.com/drop</code>.</li>
+        <li>You get a live URL straight away.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Cloudflare Pages</summary>
+      <ol>
+        <li>Workers &amp; Pages, then Create, then Pages, then Upload assets.</li>
+        <li>Upload the unzipped folder, deploy.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>IPFS (no single host to take down)</summary>
+      <ol>
+        <li>Install IPFS, then run <code>ipfs add -r mirror-me</code>.</li>
+        <li>The last hash printed is the folder. Open it via any gateway as <code>/ipfs/HASH/</code>, or pin it on a pinning service.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>No host at all</summary>
+      <ol>
+        <li>Download the <b>single file</b> version.</li>
+        <li>Double-click it. It runs from your disk, and can still make more copies of itself.</li>
+        <li>Pass it on by email, chat, or USB stick.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section>
+    <h2>3. Install it (works offline afterwards)</h2>
+    <p>Install this as an app and it keeps working with no connection and no server, and can still re-export itself.</p>
+    <button id="btnInstall" hidden>Install app</button>
+    <p id="installHelp" class="muted">If there is no install button: in Chrome/Edge use the address bar install icon, on iOS use Share, then <i>Add to Home Screen</i>.</p>
+  </section>
+
+  <section>
+    <h2>4. Verify your copy</h2>
+    <p>Anyone can publish a tampered mirror. Compare these SHA-256 hashes with ones you trust (for example from the original repo or a signed message). If they match, the copy is identical.</p>
+    <table id="hashes"><thead><tr><th>File</th><th>Bytes</th><th>SHA-256</th></tr></thead><tbody></tbody></table>
+    <p>Bundle hash: <code id="bundleHash">computing...</code></p>
+  </section>
+
+  <section>
+    <h2>Why this is safe to run</h2>
+    <ul>
+      <li>No third-party scripts, fonts, analytics or CDNs. Every file is in the bundle.</li>
+      <li>A strict Content-Security-Policy blocks all outside connections. You can read it in the page source.</li>
+      <li>Nothing is sent anywhere. Zips and scripts are built in your browser.</li>
+    </ul>
+  </section>
+</main>
+
+<footer><p>Licensed as the rest of this repository. Fork it, change it, spread it.</p></footer>
+<script src="app.js"></script>
+</body>
+</html>
