@@ -34,7 +34,7 @@ const mock=mode=>`(()=>{
 
 const browser=await chromium.launch(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{});
 async function open(mode){
-  const page=await browser.newPage(),errors=[];
+  const page=await browser.newPage({acceptDownloads:true}),errors=[];page.on('dialog',d=>d.accept());
   page.on('pageerror',e=>errors.push(e.message));
   page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
   await page.addInitScript(mock(mode));await page.goto(url);
@@ -120,7 +120,7 @@ try{
     assert.match(report,/Missing expected keys/);
     assert.match(report,/13\/13 matched/);
     const json=JSON.parse(await page.locator('#reportPreview').textContent());
-    assert.equal(json.version,2);assert.ok(json.eventCount>100);assert.equal(json.mappings[0].label,'Cutoff');
+    assert.equal(json.version,3);assert.ok(json.eventCount>100);assert.equal(json.mappings[0].label,'Cutoff');
 
     // Local persistence: save baseline, compare, clear.
     await page.click('#saveBaseline');
@@ -131,6 +131,64 @@ try{
     assert.match(await text(page,'#midiStatus'),/Unsupported report version/);
     await page.click('#clearLocal');
     assert.ok(await page.evaluate(()=>!localStorage.getItem('miditest-baseline-v2')));
+
+    // ---- 0.2.0 features ----
+    await tab(page,'quick');await settle(page);
+    assert.match(await text(page,'#checklistBody'),/Checklist result/);
+    // record -> save -> reload -> replay (instant) keeps analysis working
+    await tab(page,'monitorView');await page.click('#recStart');
+    await page.evaluate(async()=>{const M=window.__midi;for(let n=60;n<72;n++){M.emit([0x90,n,70+n%20]);M.emit([0x80,n,0])}for(let v=0;v<=127;v+=2)M.emit([0xB0,30,v])});
+    await page.click('#recStop');assert.match(await text(page,'#recStatus'),/Recorded \d+/);
+    const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#recSave')]);
+    const capText=(await import('node:fs/promises')).readFile(await dl.path(),'utf8');const capJson=await capText;
+    assert.match(capJson,/"kind": ?"capture"/);
+    await page.setInputFiles('#capLoad',{name:'c.json',mimeType:'application/json',buffer:Buffer.from(capJson)});await settle(page);
+    assert.match(await text(page,'#recStatus'),/Loaded \d+/);
+    await page.click('#replayRun');await page.waitForTimeout(800);
+    assert.match(await text(page,'#recStatus'),/Replay analysed/);
+    await page.setInputFiles('#capLoad',{name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"kind":"nope"}')});await settle(page);
+    assert.match(await text(page,'#recStatus'),/Could not load capture/);
+    // charts
+    await tab(page,'chartsView');await settle(page);
+    assert.match(await text(page,'#chartTable'),/points/);
+    await page.selectOption('#chartSelect','velocity');await settle(page);assert.match(await text(page,'#chartTable'),/points/);
+    // glossary + term buttons
+    await tab(page,'testsView');await settle(page);
+    await page.locator('#testResults details').first().evaluate(d=>d.open=true);
+    assert.ok(await page.locator('#testResults .term').count()>10);
+    await page.click('#glossaryBtn');await page.waitForTimeout(300);
+    assert.ok(await page.locator('#glossaryDialog').evaluate(d=>d.open));assert.match(await text(page,'#glossaryList'),/Jitter/);
+    await page.fill('#glossarySearch','code 43');await settle(page);assert.match(await text(page,'#glossaryList'),/Code 43|43/i);
+    await page.keyboard.press('Escape');await page.keyboard.press('Escape');await settle(page);
+    // active tests over the mock loopback (two quick tests)
+    await page.evaluate(()=>document.querySelectorAll('[data-active]').forEach(c=>{c.checked=['notePairing','channelIsolation'].includes(c.dataset.active)}));
+    await page.click('#activeRun');await page.waitForTimeout(6500);
+    const act=await text(page,'#activeResults');assert.match(act,/No concern observed/);assert.doesNotMatch(act,/Investigate/);
+    // sysex identity flow (loopback echoes the request, which is not an identity reply)
+    await tab(page,'outputView');await page.click('#sysIdentity');await page.waitForTimeout(500);
+    assert.match(await text(page,'#sysStatus'),/not an Identity Reply|Waiting/);
+    await page.fill('#sysHex','F0 7D 01 02 F7');await page.click('#sysSend');await settle(page);assert.match(await text(page,'#sysStatus'),/Sent/);
+    await page.fill('#sysHex','F0 7D 01 80 F7');await page.click('#sysSend');await settle(page);assert.match(await text(page,'#sysStatus'),/not 00-7F/);
+    await page.fill('#sysHex','10 20 30');await page.click('#sysCsBtn');assert.match(await text(page,'#sysStatus'),/Checksum/);
+    // clock generator
+    await page.fill('#clkBpm','240');await page.click('#clkStart');await page.waitForTimeout(1500);await page.click('#clkStop');await settle(page);
+    assert.match(await text(page,'#clkStatus')+await text(page,'#clkResult'),/Ticks paired|Not enough returned clock/);
+    // path comparison without a second input
+    await page.click('#pathStart');assert.match(await text(page,'#pathStatus'),/choose Input B/);
+    // UMP
+    await tab(page,'monitorView');await page.fill('#umpText','20904060');await page.click('#umpDecode');assert.match(await text(page,'#umpOut'),/noteon/i);
+    // profiles + HTML report
+    await tab(page,'reportView');await page.fill('#pfName','Mock known good');await page.click('#pfSave');await settle(page);
+    assert.equal(await page.locator('#pfSelect option').count(),1);await page.click('#pfCompare');await settle(page);assert.match(await text(page,'#pfStatus'),/Comparing/);
+    const [dl2]=await Promise.all([page.waitForEvent('download'),page.click('#exportHtml')]);
+    const html=await (await import('node:fs/promises')).readFile(await dl2.path(),'utf8');
+    assert.match(html,/MIDItest diagnostic report/);assert.doesNotMatch(html,/<script/i);
+    // labs flag hides Charts tab
+    await page.click('#helpBtn');await page.locator('[data-labs="charts"]').uncheck();await page.keyboard.press('Escape');
+    assert.ok(await page.locator('[data-view="chartsView"]').isHidden());
+    await page.click('#helpBtn');await page.locator('[data-labs="charts"]').check();await page.keyboard.press('Escape');
+    // arrow-key tab navigation
+    await page.focus('.tab.active');await page.keyboard.press('ArrowRight');await settle(page);assert.ok(await page.locator('.tab.active').count()===1);
 
     // Advanced tests tab + burst test + Windows log import.
     await tab(page,'testsView');await settle(page);
@@ -150,8 +208,8 @@ try{
     const rj=JSON.parse(await page.locator('#reportPreview').textContent());
     assert.ok(rj.advancedTests.length===10&&rj.windowsLogs.findings.length>=2&&rj.logFiles.length===1);
 
-    await page.click('[data-view="outputView"]');await page.click('#panicAll');
-    assert.ok(await page.evaluate(()=>window.__sent.filter(b=>(b[0]&0xF0)===0xB0&&b[1]===123).length===16));
+    await page.click('[data-view="outputView"]');const before=await page.evaluate(()=>window.__sent.filter(b=>(b[0]&0xF0)===0xB0&&b[1]===123).length);await page.click('#panicAll');
+    assert.equal(await page.evaluate(()=>window.__sent.filter(b=>(b[0]&0xF0)===0xB0&&b[1]===123).length)-before,16);
     assert.deepEqual(errors,[]);await page.close()}
 
   console.log('MIDItest browser integration tests: PASS');

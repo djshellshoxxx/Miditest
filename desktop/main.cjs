@@ -14,7 +14,7 @@ protocol.registerSchemesAsPrivileged([{scheme:'app',privileges:{standard:true,se
 if(!app.requestSingleInstanceLock())app.quit();
 
 function serveApp(request){
-  const rel=decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/,'')||'index.html';
+  let rel;try{rel=decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/,'')||'index.html'}catch{return new Response('Bad request',{status:400})}
   const file=path.normalize(path.join(ROOT,rel));
   if(file!==ROOT&&!file.startsWith(ROOT+path.sep))return new Response('Not found',{status:404});
   return net.fetch(pathToFileURL(file).toString());

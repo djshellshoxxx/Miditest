@@ -1,7 +1,7 @@
 {
   "name": "miditest",
   "productName": "MIDItest",
-  "version": "0.0.1-beta",
+  "version": "0.2.0-beta",
   "description": "MIDItest by Circuit Drift Labs - local MIDI monitor and controller diagnostic bench",
   "author": "Circuit Drift Labs",
   "license": "MIT",
@@ -10,7 +10,7 @@
   "homepage": "https://djshellshoxxx.github.io/Miditest/",
   "main": "desktop/main.cjs",
   "scripts": {
-    "test": "node tests/core.test.mjs && node tests/tests.test.mjs && node tests/ui-static.test.mjs && node --input-type=module --check < app-v2.js && node --input-type=module --check < midi-core.js && node --input-type=module --check < midi-tests.js && node --input-type=module --check < midi-winlog.js && node --input-type=module --check < ui-assistance.js",
+    "test": "node tests/core.test.mjs && node tests/tests.test.mjs && node tests/lib-a.test.mjs && node tests/lib-b.test.mjs && node tests/lib-c.test.mjs && node tests/fixtures.test.mjs && node tests/ui-static.test.mjs && node --input-type=module --check < app-v2.js && node --input-type=module --check < features.js && node --input-type=module --check < midi-core.js && node --input-type=module --check < midi-tests.js && node --input-type=module --check < midi-winlog.js && node --input-type=module --check < ui-assistance.js",
     "test:browser": "node tests/browser.test.mjs",
     "start": "electron .",
     "dist:win": "electron-builder --win --x64 --publish never"
@@ -23,7 +23,7 @@
   "build": {
     "appId": "io.github.djshellshoxxx.miditest",
     "productName": "MIDItest",
-    "copyright": "Copyright © Circuit Drift Labs",
+    "copyright": "Copyright \u00a9 Circuit Drift Labs",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -34,7 +34,6 @@
       "midi-core.js",
       "midi-tests.js",
       "midi-winlog.js",
-      "winscan.ps1",
       "ui-assistance.js",
       "styles.css",
       "favicon.svg",
@@ -42,7 +41,11 @@
       "build/icon.png",
       "LICENSE",
       "COPYRIGHT-TRADEMARK.md",
-      "package.json"
+      "package.json",
+      "features.js",
+      "lib/**",
+      "data/**",
+      "winscan.ps1"
     ],
     "win": {
       "icon": "build/icon.png",
@@ -62,14 +65,14 @@
       ]
     },
     "nsis": {
-      "artifactName": "MIDItest-Setup-0.01-beta-x64.${ext}",
+      "artifactName": "MIDItest-Setup-${version}-x64.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "MIDItest"
     },
     "portable": {
-      "artifactName": "MIDItest-0.01-beta-x64-portable.${ext}"
+      "artifactName": "MIDItest-${version}-x64-portable.${ext}"
     }
   }
 }

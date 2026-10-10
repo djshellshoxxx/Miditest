@@ -1,0 +1,935 @@
+[
+  {
+    "id": "jitter",
+    "term": "Jitter",
+    "aliases": [
+      "Value jitter",
+      "Noise"
+    ],
+    "short": "Small, random changes in a control's reported value as it is moved or held.",
+    "long": "Jitter is unwanted fluctuation in the numbers a controller sends, such as a fader bouncing between 64 and 66 when held still. It shows up as extra CC or pitch-bend messages that clutter a DAW or cause zipper noise in a sound. When testing, sweep the control slowly and watch for values that flicker more than the physical movement explains.",
+    "related": [
+      "stationary-jitter",
+      "coarse-step",
+      "reversals",
+      "linearity"
+    ]
+  },
+  {
+    "id": "stationary-jitter",
+    "term": "Stationary Jitter",
+    "aliases": [
+      "Idle jitter",
+      "Resting noise"
+    ],
+    "short": "Value changes reported while a control is untouched and not being moved.",
+    "long": "Stationary jitter is the case where a knob, fader, or wheel keeps sending changing values even when nobody is touching it. It usually points to a noisy potentiometer, a weak ADC reference, or a dirty wiper. Test it by leaving the control alone for a minute while logging the messages.",
+    "related": [
+      "jitter",
+      "backslide",
+      "dead-zone"
+    ]
+  },
+  {
+    "id": "coverage",
+    "term": "Coverage",
+    "aliases": [
+      "Range coverage",
+      "Full-range test"
+    ],
+    "short": "How much of a control's full 0-127 (or 0-16383) range is actually reachable and reported.",
+    "long": "Coverage measures whether a control can produce its minimum and maximum values. A pot that only reaches 3 to 124 has poor coverage and will never fully open a filter or fully close a mix. Test by moving the control end to end and checking that both extremes appear in the log.",
+    "related": [
+      "dead-zone",
+      "linearity",
+      "coarse-step"
+    ]
+  },
+  {
+    "id": "dead-zone",
+    "term": "Dead Zone",
+    "aliases": [
+      "Dead band",
+      "Insensitive region"
+    ],
+    "short": "A stretch of physical travel where moving the control produces no change in its output.",
+    "long": "A dead zone is a region at one or both ends of a control's travel where the value does not change. It is commonly caused by worn potentiometers, misaligned sensors, or firmware that clamps values. Dead zones make a control feel broken even when it eventually responds.",
+    "related": [
+      "coverage",
+      "jumps",
+      "linearity"
+    ]
+  },
+  {
+    "id": "jumps",
+    "term": "Jumps",
+    "aliases": [
+      "Value jumps",
+      "Stepping"
+    ],
+    "short": "Sudden large changes in a value that do not match a smooth movement of the control.",
+    "long": "A jump is when a value leaps several steps at once during a slow, smooth movement. It is often caused by dropped sensor samples, an unstable ADC, or a bad connection. Jumps are visible in a MIDI monitor as a sequence of values skipping numbers in between.",
+    "related": [
+      "jitter",
+      "reversals",
+      "direction-glitch"
+    ]
+  },
+  {
+    "id": "reversals",
+    "term": "Reversals",
+    "aliases": [
+      "Direction reversals",
+      "Back-and-forth values"
+    ],
+    "short": "Values that briefly move opposite to the direction the control is being turned.",
+    "long": "A reversal is a small wrong-way change in the middle of a movement, such as 80, 81, 80, 81, 82 while turning steadily upward. It can come from electrical noise, a loose wiper, or debounce logic that is too aggressive. Reversals are a key sign of a failing potentiometer.",
+    "related": [
+      "jitter",
+      "jumps",
+      "backslide"
+    ]
+  },
+  {
+    "id": "backslide",
+    "term": "Backslide",
+    "aliases": [
+      "Drift back",
+      "Settling back"
+    ],
+    "short": "A value that drifts back toward its previous position after the control is released.",
+    "long": "Backslide is when a fader or knob settles to a lower or higher value than where it was left, such as a fader sliding down after release. It is caused by mechanical friction, spring fatigue, or a sensor that does not hold position. Test it by setting a position, letting go, and watching the value for several seconds.",
+    "related": [
+      "stationary-jitter",
+      "overshoot",
+      "repeatability"
+    ]
+  },
+  {
+    "id": "coarse-step",
+    "term": "Coarse Step",
+    "aliases": [
+      "Stepped output",
+      "Quantized steps"
+    ],
+    "short": "Output that moves in large visible steps instead of fine increments across the range.",
+    "long": "A coarse step occurs when a control with high resolution sends values that skip many numbers, so the sound changes in audible chunks. It usually reflects a low-resolution ADC, a 7-bit mapping of a sensor that could give more, or missing 14-bit support. Checking the increment size in a MIDI monitor reveals it quickly.",
+    "related": [
+      "14-bit-cc",
+      "jitter",
+      "coverage"
+    ]
+  },
+  {
+    "id": "linearity",
+    "term": "Linearity",
+    "aliases": [
+      "Taper accuracy",
+      "Response curve"
+    ],
+    "short": "How evenly the output value follows the physical position of the control.",
+    "long": "Linearity describes whether equal physical movement produces equal value change. A pot with a poor taper or an uneven sensor can bunch values at one end, making fine adjustments hard. Test by marking equal positions and comparing the reported values.",
+    "related": [
+      "coverage",
+      "dead-zone",
+      "repeatability"
+    ]
+  },
+  {
+    "id": "rollover",
+    "term": "Rollover",
+    "aliases": [
+      "N-key rollover",
+      "NKRO",
+      "Simultaneous key detection"
+    ],
+    "short": "The number of key presses a keyboard can register at the same time without dropping any.",
+    "long": "Rollover is how many simultaneous key presses a keyboard detects accurately. Six-key rollover is common in cheap designs, while full N-key rollover can register every pressed key. Test it by holding several keys at once and checking that every note-on appears in the monitor.",
+    "related": [
+      "ghosting",
+      "key-bounce",
+      "burst-test"
+    ]
+  },
+  {
+    "id": "ghosting",
+    "term": "Ghosting",
+    "aliases": [
+      "Phantom keys",
+      "Matrix ghosting"
+    ],
+    "short": "Phantom note-ons where three or more keys pressed together in a matrix trigger an extra key.",
+    "long": "Ghosting happens in key matrices where rows and columns form loops, so pressing some combinations falsely signals a key that is not pressed. It is a wiring and scanning limit, not a fault in one key. Test with a chord pattern of three keys forming a rectangle and check for an unexpected note.",
+    "related": [
+      "rollover",
+      "key-bounce"
+    ]
+  },
+  {
+    "id": "key-bounce",
+    "term": "Key Bounce",
+    "aliases": [
+      "Contact bounce",
+      "Switch bounce"
+    ],
+    "short": "Rapid on-off flickering of a key's contacts that can generate extra note events.",
+    "long": "When a mechanical switch closes, its contacts can bounce for a few milliseconds, producing several electrical transitions. Without debouncing, one press becomes multiple note-ons. Tests should check whether a single slow press sends one note-on and one note-off.",
+    "related": [
+      "double-trigger",
+      "ghosting",
+      "rollover"
+    ]
+  },
+  {
+    "id": "double-trigger",
+    "term": "Double Trigger",
+    "aliases": [
+      "Double note",
+      "Retrigger"
+    ],
+    "short": "One physical press producing two note-on messages in quick succession.",
+    "long": "A double trigger is a single press that sends two note-ons, often a few milliseconds apart, making notes sound doubled or stuttered. Key bounce, a worn contact, or a weak scan timing is the usual cause. Confirm it by pressing one key slowly and counting note-ons in the monitor.",
+    "related": [
+      "key-bounce",
+      "velocity"
+    ]
+  },
+  {
+    "id": "velocity",
+    "term": "Velocity",
+    "aliases": [
+      "Note velocity",
+      "Key velocity"
+    ],
+    "short": "A 1-127 value on note-on that represents how hard or fast a key or pad was struck.",
+    "long": "Velocity tells the sound engine how loud or bright a note should be. A velocity of 0 on note-on is usually treated as note-off. When testing, play soft and hard strikes and check that the values scale smoothly and that a full-force hit reaches the top of the range.",
+    "related": [
+      "release-velocity",
+      "repeatability",
+      "double-trigger"
+    ]
+  },
+  {
+    "id": "repeatability",
+    "term": "Repeatability",
+    "aliases": [
+      "Consistency",
+      "Repeat accuracy"
+    ],
+    "short": "Whether the same physical action produces the same value every time it is repeated.",
+    "long": "Repeatability measures consistency across many trials. A key or pad that gives velocity 90 one time and 60 the next for the same strike is poorly repeatable. Test by performing identical strokes a dozen times and comparing the logged values.",
+    "related": [
+      "velocity",
+      "linearity",
+      "backslide"
+    ]
+  },
+  {
+    "id": "release-velocity",
+    "term": "Release Velocity",
+    "aliases": [
+      "Note-off velocity",
+      "Off velocity"
+    ],
+    "short": "A value sent with note-off indicating how fast a key was released.",
+    "long": "Release velocity is carried in the note-off message and is ignored by most synths but matters for some hardware and samplers. Many controllers send a fixed 0 or 64 instead of a measured value. When testing, check whether the release value varies with release speed if the device claims to support it.",
+    "related": [
+      "velocity",
+      "cc"
+    ]
+  },
+  {
+    "id": "aftertouch",
+    "term": "Aftertouch",
+    "aliases": [
+      "Channel pressure",
+      "Channel aftertouch"
+    ],
+    "short": "Pressure applied after a key is held down, sent as one value for the whole channel.",
+    "long": "Channel aftertouch (status 0xD0) sends one pressure value for all keys on a channel. It lets players add vibrato or brightness while holding notes. Test by holding a key and pressing harder and softer, then confirming the value rises and falls smoothly.",
+    "related": [
+      "poly-aftertouch",
+      "cc",
+      "velocity"
+    ]
+  },
+  {
+    "id": "poly-aftertouch",
+    "term": "Polyphonic Aftertouch",
+    "aliases": [
+      "Poly pressure",
+      "Key pressure",
+      "Polyphonic key pressure"
+    ],
+    "short": "Per-note pressure messages (status 0xA0) that report pressure for each held key separately.",
+    "long": "Polyphonic aftertouch sends a pressure value tied to a specific note number. It is less common because it needs more bandwidth and per-key sensing. When testing, hold two keys and press one harder, then confirm only that note's pressure value changes.",
+    "related": [
+      "aftertouch",
+      "velocity"
+    ]
+  },
+  {
+    "id": "pitch-bend",
+    "term": "Pitch Bend",
+    "aliases": [
+      "Pitch wheel",
+      "Pitch-bend message"
+    ],
+    "short": "A 14-bit channel message (status 0xE0) where 8192 is centre and 0 and 16383 are the extremes.",
+    "long": "Pitch bend sends a 14-bit value with 8192 meaning no bend. Wheels and joysticks use it to change pitch smoothly. When testing, confirm the centre sends exactly 8192 and both extremes reach 0 and 16383, since an off-centre rest causes detuning.",
+    "related": [
+      "center-return",
+      "rpn",
+      "cc"
+    ]
+  },
+  {
+    "id": "center-return",
+    "term": "Center Return",
+    "aliases": [
+      "Spring return",
+      "Self-centering"
+    ],
+    "short": "Whether a pitch wheel or joystick returns accurately to its neutral value when released.",
+    "long": "Center return checks that a spring-loaded wheel or stick settles at the neutral position, which is 8192 for pitch bend. A poor return leaves notes slightly out of tune after use. Test by flicking the wheel to each extreme, releasing it, and reading the resting value.",
+    "related": [
+      "pitch-bend",
+      "overshoot",
+      "repeatability"
+    ]
+  },
+  {
+    "id": "overshoot",
+    "term": "Overshoot",
+    "aliases": [
+      "Value overshoot",
+      "Past-target value"
+    ],
+    "short": "A value that passes its target and then settles back, often seen on fast spring-loaded controls.",
+    "long": "Overshoot happens when a control's reported value goes past where the physical position stops, then returns. It can come from a spring that is too stiff, a filter in firmware with a poor setting, or a sensor that lags. It matters because the output then does not match what the player sees.",
+    "related": [
+      "center-return",
+      "backslide",
+      "jumps"
+    ]
+  },
+  {
+    "id": "sustain-pedal",
+    "term": "Sustain Pedal",
+    "aliases": [
+      "Damper pedal",
+      "CC 64 pedal"
+    ],
+    "short": "A footswitch or continuous pedal sending CC 64, where values of 64 or more mean pedal down.",
+    "long": "The sustain pedal is usually control change 64 with values of 0-63 for off and 64-127 for on. Many faults show as a note that hangs or a pedal that does nothing. Test by pressing and releasing and confirming the CC 64 value crosses 64 cleanly in both directions.",
+    "related": [
+      "polarity",
+      "half-damper",
+      "cc"
+    ]
+  },
+  {
+    "id": "polarity",
+    "term": "Polarity",
+    "aliases": [
+      "Switch polarity",
+      "Normally open or closed"
+    ],
+    "short": "Whether a pedal or switch sends its active state when closed (NO) or when open (NC).",
+    "long": "Polarity tells the controller which contact state means pedal down. A normally open pedal read as normally closed sounds inverted, with sustain on when the foot is up. Check it by powering on with the pedal released and seeing whether the value reads off or on.",
+    "related": [
+      "sustain-pedal",
+      "half-damper"
+    ]
+  },
+  {
+    "id": "half-damper",
+    "term": "Half Damper",
+    "aliases": [
+      "Half-pedal",
+      "Partial sustain"
+    ],
+    "short": "A partial pedal position that gives partial sustain, often shown as values between 0 and 127.",
+    "long": "Half damper is a partial pedal depth that lets strings or notes ring part way. Digital pianos and pedal units with continuous sensing send intermediate CC 64 values for it. A device that only sends 0 or 127 will not support half damper, which is worth knowing before testing a pedal as a true continuous controller.",
+    "related": [
+      "sustain-pedal",
+      "polarity",
+      "cc"
+    ]
+  },
+  {
+    "id": "relative-encoder",
+    "term": "Relative Encoder",
+    "aliases": [
+      "Relative knob",
+      "Increment encoder",
+      "Endless encoder"
+    ],
+    "short": "An encoder that sends the amount of change rather than a fixed position.",
+    "long": "A relative encoder sends small increments such as 1 or 65 and 127 or 63 for direction, so it can turn endlessly. Software must add these to a running value. When testing, rotate it one click each way and confirm the sign and size of each message.",
+    "related": [
+      "absolute-encoder",
+      "direction-glitch",
+      "cc"
+    ]
+  },
+  {
+    "id": "absolute-encoder",
+    "term": "Absolute Encoder",
+    "aliases": [
+      "Position encoder",
+      "Absolute knob"
+    ],
+    "short": "A knob or fader that sends its exact position as a value between 0 and 127.",
+    "long": "An absolute control sends its current position on every change, like a potentiometer. It is simple to map and always reflects the physical setting. When testing, check that the value at a given position is the same after power cycling.",
+    "related": [
+      "relative-encoder",
+      "linearity",
+      "cc"
+    ]
+  },
+  {
+    "id": "direction-glitch",
+    "term": "Direction Glitch",
+    "aliases": [
+      "Wrong-way blip",
+      "Direction error"
+    ],
+    "short": "A brief, incorrect change in direction reported by an encoder during rotation.",
+    "long": "A direction glitch is a short wrong-way pulse from a rotary encoder, often at higher speeds or where the contacts or optical sensor are dirty. It makes a knob feel jumpy. Test by turning slowly and then quickly, watching for opposite signs in the increment messages.",
+    "related": [
+      "relative-encoder",
+      "reversals",
+      "jitter"
+    ]
+  },
+  {
+    "id": "cc",
+    "term": "Control Change",
+    "aliases": [
+      "CC",
+      "Controller message",
+      "Continuous controller"
+    ],
+    "short": "A channel message (status 0xB0) that carries a controller number 0-119 and a value 0-127.",
+    "long": "Control change is the standard message for knobs, faders, pedals, and buttons. It has a controller number and a 7-bit value, so most tests map each physical control to one CC. Confirm that each control sends its expected number on the right channel and that the value changes monotonically.",
+    "related": [
+      "14-bit-cc",
+      "nrpn",
+      "channel-mode",
+      "program-change"
+    ]
+  },
+  {
+    "id": "14-bit-cc",
+    "term": "14-bit CC",
+    "aliases": [
+      "14-bit control change",
+      "High-resolution CC",
+      "MSB LSB pair"
+    ],
+    "short": "A pair of CCs (0-31 MSB and 32-63 LSB) that together give 16384 steps of resolution.",
+    "long": "A 14-bit CC sends a coarse MSB on controllers 0 to 31 and a fine LSB on the matching number plus 32. Receivers combine them for finer control. Testing should confirm that the LSB is sent after the MSB and that the combined value sweeps smoothly rather than stepping.",
+    "related": [
+      "cc",
+      "nrpn",
+      "coarse-step"
+    ]
+  },
+  {
+    "id": "nrpn",
+    "term": "NRPN",
+    "aliases": [
+      "Non-registered parameter number",
+      "NRPN message"
+    ],
+    "short": "A CC sequence (CC 99 and 98 select, CC 6 and 38 set data) that addresses synth-specific parameters.",
+    "long": "NRPN lets a manufacturer expose private parameters through standard CC messages. The sequence selects a parameter with CC 99 and CC 98, then sets its value with CC 6 for MSB and CC 38 for LSB. Test by sending a known NRPN and checking the synth responds, since support varies by device.",
+    "related": [
+      "rpn",
+      "14-bit-cc",
+      "cc"
+    ]
+  },
+  {
+    "id": "rpn",
+    "term": "RPN",
+    "aliases": [
+      "Registered parameter number",
+      "RPN message"
+    ],
+    "short": "A standardised CC sequence (CC 101 and 100 select, CC 6 and 38 set) for MIDI-defined parameters.",
+    "long": "RPN addresses parameters that the MIDI standard defines, such as pitch bend range (RPN 0,0). The selection uses CC 101 for MSB and CC 100 for LSB. It is useful when testing a controller that must set bend range or fine tuning on a receiving synth.",
+    "related": [
+      "nrpn",
+      "pitch-bend",
+      "cc"
+    ]
+  },
+  {
+    "id": "program-change",
+    "term": "Program Change",
+    "aliases": [
+      "PC",
+      "Patch change"
+    ],
+    "short": "A channel message (status 0xC0) that selects a patch or preset number from 0 to 127.",
+    "long": "Program change tells a receiving instrument to switch sounds. It carries one data byte, so only 128 patches are addressable without bank select. When testing a controller's patch buttons, verify that each sends the intended program number on the intended channel.",
+    "related": [
+      "bank-select",
+      "cc"
+    ]
+  },
+  {
+    "id": "bank-select",
+    "term": "Bank Select",
+    "aliases": [
+      "CC 0",
+      "CC 32",
+      "Bank change"
+    ],
+    "short": "Controllers 0 (MSB) and 32 (LSB) sent before a program change to choose a larger patch bank.",
+    "long": "Bank select extends the patch count beyond 128 by sending CC 0 and CC 32 before a program change. Many devices expect MSB then LSB then PC in that order. Test by sending a bank and program change and confirming the receiving device lands on the expected patch.",
+    "related": [
+      "program-change",
+      "cc"
+    ]
+  },
+  {
+    "id": "sysex",
+    "term": "SysEx",
+    "aliases": [
+      "System Exclusive",
+      "F0 message"
+    ],
+    "short": "A variable-length manufacturer message that starts with F0 and ends with F7, used for device-specific data.",
+    "long": "System exclusive messages carry data such as patch dumps, firmware, and device settings. They are unlimited in length but must not contain bytes with the high bit set except the terminator. Mishandled SysEx can hang a receiver or be dropped by a USB buffer, so test with a short known message first.",
+    "related": [
+      "identity-request",
+      "running-status",
+      "usb-midi"
+    ]
+  },
+  {
+    "id": "identity-request",
+    "term": "Identity Request",
+    "aliases": [
+      "Universal identity request",
+      "Device inquiry",
+      "Identity reply"
+    ],
+    "short": "A universal SysEx (F0 7E 7F 06 01 F7) asking a device to reply with its manufacturer and model.",
+    "long": "The identity request is a universal SysEx that asks a device to identify itself. The reply carries the manufacturer ID, family, model, and version. It is one of the first tests when a controller is not recognised by software, because a missing reply points to a wiring or port problem rather than a driver issue.",
+    "related": [
+      "sysex",
+      "loopback",
+      "class-compliant"
+    ]
+  },
+  {
+    "id": "active-sensing",
+    "term": "Active Sensing",
+    "aliases": [
+      "FE message",
+      "Active sense"
+    ],
+    "short": "A status byte 0xFE sent at least every 300 ms so a receiver can detect a disconnected cable.",
+    "long": "Active sensing is an optional message sent about every 300 ms. A receiver that stops hearing it can assume the cable is gone and turn off its notes. When testing, a missing FE can cause a receiver to fail to notice a disconnection, and a stream of FE can overload a poor link.",
+    "related": [
+      "midi-clock",
+      "running-status",
+      "din-baud-limit"
+    ]
+  },
+  {
+    "id": "midi-clock",
+    "term": "MIDI Clock",
+    "aliases": [
+      "Timing clock",
+      "F8"
+    ],
+    "short": "A real-time byte (0xF8) sent 24 times per quarter note to keep devices in tempo sync.",
+    "long": "MIDI clock is a steady stream of 0xF8 bytes that tells receivers the tempo and beat position. At 120 BPM it arrives about every 20.8 ms. When testing a controller that sends clock, check for even spacing, since jitter in the clock causes a tempo that wobbles.",
+    "related": [
+      "song-position",
+      "active-sensing",
+      "jitter"
+    ]
+  },
+  {
+    "id": "song-position",
+    "term": "Song Position Pointer",
+    "aliases": [
+      "SPP",
+      "F2 message"
+    ],
+    "short": "A system common message (0xF2) setting a 14-bit position in beats, used with MIDI clock.",
+    "long": "Song position pointer tells a sequencer where to start playback within a song, counting sixteenth notes. It is paired with start or continue messages. Testing it confirms that a device that is started from a mid-song position picks up in the correct place.",
+    "related": [
+      "midi-clock",
+      "running-status"
+    ]
+  },
+  {
+    "id": "running-status",
+    "term": "Running Status",
+    "aliases": [
+      "Status omission",
+      "Implied status"
+    ],
+    "short": "An optimisation where repeated channel messages omit the status byte after the first one.",
+    "long": "Running status lets a sender skip the repeated status byte when consecutive messages share the same type. It saves bandwidth but confuses receivers that do not track it, and it is cleared by real-time or system messages. Bugs here often appear as garbled notes in a monitor after a clock or sensing byte.",
+    "related": [
+      "sysex",
+      "undefined-status",
+      "active-sensing"
+    ]
+  },
+  {
+    "id": "undefined-status",
+    "term": "Undefined Status",
+    "aliases": [
+      "Reserved status bytes",
+      "F9 and FD"
+    ],
+    "short": "Status bytes 0xF9 and 0xFD that are reserved by the spec and should be ignored by receivers.",
+    "long": "Status bytes F9 and FD are undefined in MIDI. A well-behaved device ignores them, but some devices use them incorrectly or send them by mistake, so receivers can behave oddly. When testing, a monitor showing these bytes is a clue to an unusual device or firmware bug.",
+    "related": [
+      "running-status",
+      "sysex"
+    ]
+  },
+  {
+    "id": "channel-mode",
+    "term": "Channel Mode Messages",
+    "aliases": [
+      "Channel mode",
+      "CC 120-127"
+    ],
+    "short": "Control changes 120 to 127 that reset, mute, or change how a channel responds.",
+    "long": "Channel mode messages are control changes 120 to 127 that affect the whole channel, including reset all controllers, local control, all notes off, omni, mono, and poly modes. They are the main tool for clearing stuck notes. Test them against a receiver with a known sound to confirm each behaves as documented.",
+    "related": [
+      "all-notes-off",
+      "all-sound-off",
+      "system-reset"
+    ]
+  },
+  {
+    "id": "all-notes-off",
+    "term": "All Notes Off",
+    "aliases": [
+      "CC 123",
+      "Panic note-off"
+    ],
+    "short": "Channel mode CC 123 that asks a receiver to release every held note on that channel.",
+    "long": "All notes off is a panic message that releases notes but lets release tails finish. It is the normal fix for hung notes after a test. Confirm that it clears notes on the receiver without needing a power cycle.",
+    "related": [
+      "channel-mode",
+      "all-sound-off",
+      "loopback"
+    ]
+  },
+  {
+    "id": "all-sound-off",
+    "term": "All Sound Off",
+    "aliases": [
+      "CC 120",
+      "Hard mute"
+    ],
+    "short": "Channel mode CC 120 that silences a channel immediately, cutting release tails too.",
+    "long": "All sound off is stronger than all notes off because it cuts sound at once, including release. It is useful for quickly silencing a rig during a test. Use it to confirm that a receiver responds to channel mode messages at all.",
+    "related": [
+      "channel-mode",
+      "all-notes-off"
+    ]
+  },
+  {
+    "id": "system-reset",
+    "term": "System Reset",
+    "aliases": [
+      "Reset message",
+      "FF message"
+    ],
+    "short": "A real-time byte (0xFF) asking every receiver to return to its power-on state.",
+    "long": "System reset tells a device to reset completely, which may clear patches and settings. Because it is so drastic, many devices ignore it by default. Use it deliberately during testing and check that it does not cause unexpected changes on the receiver.",
+    "related": [
+      "channel-mode",
+      "sysex"
+    ]
+  },
+  {
+    "id": "loopback",
+    "term": "Loopback",
+    "aliases": [
+      "MIDI loopback",
+      "Echo test",
+      "Round-trip test"
+    ],
+    "short": "A test that sends MIDI out and checks it arrives back in, verifying a path end to end.",
+    "long": "A loopback test routes a MIDI output back to an input, either through a cable or a virtual port, and compares what comes back. It separates controller faults from host problems. A clean loopback with a broken controller points to the device, while a broken loopback points to the cable or driver.",
+    "related": [
+      "identity-request",
+      "burst-test",
+      "usb-midi"
+    ]
+  },
+  {
+    "id": "burst-test",
+    "term": "Burst Test",
+    "aliases": [
+      "Flood test",
+      "Stress test"
+    ],
+    "short": "Sending many messages in a short time to check that a path does not drop or delay data.",
+    "long": "A burst test sends hundreds of messages back to back, such as a fast CC sweep or a chord of note-ons. It reveals buffer overflows, serial limits, and USB scheduling issues. Count the messages received against those sent to measure any loss.",
+    "related": [
+      "loopback",
+      "din-baud-limit",
+      "rollover"
+    ]
+  },
+  {
+    "id": "din-baud-limit",
+    "term": "DIN MIDI Baud Limit",
+    "aliases": [
+      "31.25 kbaud",
+      "DIN speed limit"
+    ],
+    "short": "Classic 5-pin MIDI runs at 31.25 kbaud, so a three-byte message takes about 1 ms.",
+    "long": "Classic DIN MIDI transmits at 31.25 kbaud, roughly 320 microseconds per byte. A three-byte note takes about 1 ms, so a dense chord or a fast sweep can build a visible queue. When testing DIN gear, expect delays on busy streams and avoid assuming USB-level speed.",
+    "related": [
+      "burst-test",
+      "active-sensing",
+      "usb-midi"
+    ]
+  },
+  {
+    "id": "usb-midi",
+    "term": "USB MIDI",
+    "aliases": [
+      "USB MIDI 1.0",
+      "MIDI over USB"
+    ],
+    "short": "MIDI carried over USB using the USB audio class, usually as bulk endpoints with 4-byte packets.",
+    "long": "USB MIDI wraps MIDI bytes in 4-byte packets over a USB audio-class interface. Most controllers use it today, and the host sees a MIDI port rather than a serial device. Problems appear as missing ports, dropped data, or devices that enumerate but send nothing.",
+    "related": [
+      "class-compliant",
+      "usbaudio-sys",
+      "din-baud-limit",
+      "midi-2"
+    ]
+  },
+  {
+    "id": "class-compliant",
+    "term": "Class-Compliant",
+    "aliases": [
+      "Class compliant device",
+      "Driverless MIDI"
+    ],
+    "short": "A device that uses the operating system's built-in USB class driver, so no vendor driver is needed.",
+    "long": "A class-compliant device follows the USB audio and MIDI class specifications and works with in-box drivers. This is why many controllers appear immediately on Windows. When a class-compliant device fails, first check whether the in-box driver is loading before blaming the hardware.",
+    "related": [
+      "usb-midi",
+      "usbaudio-sys",
+      "code-31"
+    ]
+  },
+  {
+    "id": "usbaudio-sys",
+    "term": "usbaudio.sys",
+    "aliases": [
+      "USB audio driver",
+      "Windows USB audio class driver"
+    ],
+    "short": "The Windows in-box driver that handles USB audio and USB MIDI class devices.",
+    "long": "usbaudio.sys is the Microsoft driver for USB audio class devices, including the MIDI interface on most controllers. If it fails to load, the controller can show as unknown or present with a warning. Checking Device Manager for this driver is a quick way to see whether a class device is properly bound.",
+    "related": [
+      "class-compliant",
+      "code-31",
+      "code-10",
+      "selective-suspend"
+    ]
+  },
+  {
+    "id": "selective-suspend",
+    "term": "Selective Suspend",
+    "aliases": [
+      "USB selective suspend",
+      "USB power saving"
+    ],
+    "short": "A Windows power feature that suspends idle USB devices, which can cause dropouts in MIDI.",
+    "long": "Selective suspend puts an idle USB device into a low-power state to save energy. For MIDI, this can cause a controller to disappear briefly or lose its first messages after idle. Disabling it in the USB power settings is a common fix to test when a controller drops out.",
+    "related": [
+      "usbaudio-sys",
+      "code-43",
+      "usb-midi"
+    ]
+  },
+  {
+    "id": "code-43",
+    "term": "Code 43",
+    "aliases": [
+      "Device Manager Code 43",
+      "Yellow bang code 43"
+    ],
+    "short": "A Device Manager error meaning Windows stopped the device because it reported problems.",
+    "long": "Code 43 means Windows stopped the device after it reported a fault, often a failed descriptor or a bad response to a request. It commonly appears with unstable USB cables, underpowered ports, or faulty controllers. Check the device's connection and try a different port before assuming a driver is at fault.",
+    "related": [
+      "code-10",
+      "code-31",
+      "selective-suspend",
+      "setupapi"
+    ]
+  },
+  {
+    "id": "code-10",
+    "term": "Code 10",
+    "aliases": [
+      "Device Manager Code 10",
+      "Device cannot start"
+    ],
+    "short": "A Device Manager error meaning the device cannot start, usually after a driver or hardware problem.",
+    "long": "Code 10 means the device driver reported that the hardware cannot start. The message often comes with a more specific reason in the device properties. For controllers, check the USB port, try a known-good cable, and look for a conflicting driver before replacing hardware.",
+    "related": [
+      "code-43",
+      "code-31",
+      "kernel-pnp"
+    ]
+  },
+  {
+    "id": "code-31",
+    "term": "Code 31",
+    "aliases": [
+      "Device Manager Code 31",
+      "Drivers cannot load"
+    ],
+    "short": "A Device Manager error meaning Windows cannot load the drivers required for the device.",
+    "long": "Code 31 means Windows cannot load a driver for the device, so it shows as not working properly. For a class-compliant controller it often means a damaged or missing driver entry. Reinstalling the driver or removing and rescanning the device usually clears it, and the setupapi log shows the cause.",
+    "related": [
+      "code-10",
+      "code-43",
+      "setupapi",
+      "class-compliant"
+    ]
+  },
+  {
+    "id": "setupapi",
+    "term": "SetupAPI Log",
+    "aliases": [
+      "setupapi.dev.log",
+      "Device installation log"
+    ],
+    "short": "A Windows text log of device installation attempts that shows why a driver failed to install.",
+    "long": "The SetupAPI log records each device install and driver attempt, with timestamps and errors. It is stored in the Windows INF folder as setupapi.dev.log. When a controller fails with code 31 or 43, the entries for its hardware ID explain which step went wrong.",
+    "related": [
+      "code-31",
+      "code-43",
+      "event-viewer"
+    ]
+  },
+  {
+    "id": "kernel-pnp",
+    "term": "Kernel-PnP",
+    "aliases": [
+      "Kernel PnP events",
+      "Microsoft-Windows-Kernel-PnP"
+    ],
+    "short": "A Windows event source logging plug-and-play events such as device arrival, removal, and failure.",
+    "long": "Kernel-PnP writes events to the System log whenever a device is added, removed, or fails to start. These entries give exact times for dropouts that match a cable being bumped or a power event. Matching the time of a MIDI dropout to a Kernel-PnP entry is a quick way to confirm a physical or USB cause.",
+    "related": [
+      "event-viewer",
+      "code-43",
+      "bugcheck"
+    ]
+  },
+  {
+    "id": "event-viewer",
+    "term": "Event Viewer",
+    "aliases": [
+      "Windows Event Viewer",
+      "eventvwr"
+    ],
+    "short": "The Windows tool for reading System and Application logs, where device and crash events appear.",
+    "long": "Event Viewer shows the logs that record device, driver, and crash activity. Filtering the System log to the time of a MIDI fault often reveals the matching event. It is the first stop for finding out what Windows recorded when a controller misbehaved.",
+    "related": [
+      "kernel-pnp",
+      "wer",
+      "bugcheck"
+    ]
+  },
+  {
+    "id": "wer",
+    "term": "WER",
+    "aliases": [
+      "Windows Error Reporting",
+      "Error report"
+    ],
+    "short": "Windows Error Reporting, which records and optionally uploads crash and hang reports for apps and drivers.",
+    "long": "Windows Error Reporting creates a report whenever an application or driver crashes or hangs. Reports are stored under ProgramData and show the faulting module, which can identify a MIDI driver or DAW plug-in. Reading these reports helps separate a controller issue from a software bug.",
+    "related": [
+      "bugcheck",
+      "event-viewer"
+    ]
+  },
+  {
+    "id": "bugcheck",
+    "term": "Bugcheck",
+    "aliases": [
+      "Blue screen",
+      "Stop code",
+      "BSOD"
+    ],
+    "short": "A Windows kernel crash that halts the system with a stop code, often caused by a faulty driver.",
+    "long": "A bugcheck is the kernel's emergency stop, shown as a blue screen with a stop code. It is logged as event ID 1001 in the System log and may create a minidump file. A bugcheck that names a USB or audio driver during a MIDI test is strong evidence that the driver, not the controller, needs attention.",
+    "related": [
+      "wer",
+      "event-viewer",
+      "usbaudio-sys"
+    ]
+  },
+  {
+    "id": "ump",
+    "term": "UMP",
+    "aliases": [
+      "Universal MIDI Packet",
+      "MIDI 2.0 packet"
+    ],
+    "short": "The MIDI 2.0 packet format built from 32-bit words, carrying both MIDI 1.0 and MIDI 2.0 messages.",
+    "long": "Universal MIDI Packet is the transport format for MIDI 2.0, based on 32-bit words grouped into 1 to 4 word packets. It can carry old MIDI 1.0 messages as well as higher-resolution ones. Testing a UMP device means checking the packet type and that legacy messages still map correctly.",
+    "related": [
+      "midi-2",
+      "usb-midi",
+      "windows-midi-services"
+    ]
+  },
+  {
+    "id": "midi-2",
+    "term": "MIDI 2.0",
+    "aliases": [
+      "MIDI 2",
+      "MIDI 2.0 protocol"
+    ],
+    "short": "The newer MIDI standard with higher resolution, bidirectional negotiation, and UMP transport.",
+    "long": "MIDI 2.0 adds 16-bit velocity, 32-bit controllers, per-note control, and capability discovery through MIDI-CI. It is carried over UMP. When testing, confirm whether a device is truly MIDI 2.0 or only MIDI 1.0 with a new label, since the two behave differently on the wire.",
+    "related": [
+      "ump",
+      "windows-midi-services",
+      "usb-midi"
+    ]
+  },
+  {
+    "id": "windows-midi-services",
+    "term": "Windows MIDI Services",
+    "aliases": [
+      "Windows MIDI Services",
+      "New Windows MIDI stack"
+    ],
+    "short": "Microsoft's newer Windows MIDI stack that supports UMP and MIDI 2.0 alongside legacy devices.",
+    "long": "Windows MIDI Services is Microsoft's modern MIDI platform, providing UMP support and a path to MIDI 2.0 on Windows. It sits alongside the legacy stack, so a device can appear through either route. When troubleshooting, note which stack a port uses, because fixes differ between them.",
+    "related": [
+      "ump",
+      "midi-2",
+      "usb-midi"
+    ]
+  }
+]

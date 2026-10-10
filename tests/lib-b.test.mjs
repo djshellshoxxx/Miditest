@@ -1,0 +1,71 @@
+import assert from 'node:assert/strict';
+import {PRESET_TO_CHECKLIST,CHECKLISTS,evaluateChecklist} from '../lib/checklists.js';
+import {createProfileStore,diffAgainstProfile,fleetOutliers} from '../lib/profiles.js';
+import {decimateMinMax,niceTicks,percentile,rateTimeline,histogramBins,boxStats} from '../lib/chartdata.js';
+
+// checklists
+for(const [p,k] of Object.entries(PRESET_TO_CHECKLIST))assert.ok(CHECKLISTS[k],p);
+assert.equal(Object.keys(PRESET_TO_CHECKLIST).length,6);
+const card=(id,status)=>({id,status,headline:id+' '+status});
+const keys=Array.from({length:61},(_,i)=>36+i);
+const cc=new Map([['1:1',[0,50,127]]]);
+const base={keys,velocityValues:[10,64,125],cc,tests:[card('pitch','ok'),card('pedal','ok'),card('retrigger','ok'),card('protocol','ok')],aftertouchCount:0};
+let r=evaluateChecklist('keyboard61',base);
+assert.equal(r.verdict,'PASS');assert.equal(r.failed,0);assert.equal(r.items.find(i=>i.id==='aftertouch').status,'pending');
+r=evaluateChecklist('keyboard61',{...base,keys:keys.filter(k=>k!==48)});
+assert.equal(r.verdict,'REVIEW');assert.match(r.items.find(i=>i.id==='keys').detail,/C3/);
+assert.equal(evaluateChecklist('keyboard61',{}).verdict,'INCOMPLETE');
+assert.equal(evaluateChecklist('keyboard61',{...base,tests:[card('pitch','investigate'),...base.tests.slice(1)]}).verdict,'REVIEW');
+assert.equal(evaluateChecklist('keyboard61',{...base,tests:[]}).verdict,'INCOMPLETE');
+assert.equal(evaluateChecklist('keyboard61',{...base,expected:{low:36,high:40},keys:[36,37]}).items[0].status,'fail');
+assert.equal(evaluateChecklist('keyboard61',{...base,velocityValues:[60,90]}).items.find(i=>i.id==='velocity').status,'fail');
+r=evaluateChecklist('keyboard61',{...base,skipped:{sustain:true}});assert.equal(r.items.find(i=>i.id==='sustain').status,'skipped');assert.equal(r.verdict,'INCOMPLETE');
+assert.equal(evaluateChecklist('pad16',{keys:Array.from({length:16},(_,i)=>36+i),velocityValues:[5,127],tests:[card('retrigger','ok'),card('protocol','ok')]}).verdict,'PASS');
+r=evaluateChecklist('pad16',{keys:[36,37],velocityValues:[5,127]});assert.equal(r.items[0].status,'fail');
+assert.equal(evaluateChecklist('djController',{cc:new Map([['1:7',[1]]]),tests:[card('encoder','attention'),card('burst','ok'),card('protocol','ok')]}).verdict,'PASS');
+assert.equal(evaluateChecklist('djController',{tests:[card('encoder','investigate')]}).verdict,'REVIEW');
+assert.equal(evaluateChecklist('footController',{tests:[card('pedal','attention'),card('protocol','ok')]}).verdict,'REVIEW');
+r=evaluateChecklist('synth',{tests:[card('protocol','ok')]});assert.equal(r.verdict,'INCOMPLETE');
+assert.equal(evaluateChecklist('synth',{tests:[card('protocol','ok')],manual:{sounds:true,audio:true}}).verdict,'PASS');
+assert.equal(evaluateChecklist('nope',{}).key,'generic');
+
+// profiles
+const mem=()=>{const m={};return {getItem:k=>m[k]??null,setItem:(k,v)=>{m[k]=v}}};
+const rep={keys:[60,61],controls:{'1:1':{range:100,jitter:1}},pitch:{center:8192},advancedTests:[{id:'pitch',status:'ok'}]};
+let s=createProfileStore(mem());
+let sv=s.save('Known good','K61',rep);assert.ok(sv.ok);
+assert.equal(s.list().length,1);assert.equal(s.get(sv.id).report.keys.length,2);
+const ex=s.exportProfile(sv.id);assert.equal(JSON.parse(ex).kind,'profile');
+let s2=createProfileStore(mem());const im=s2.importProfile(ex);assert.ok(im.ok);assert.equal(s2.get(im.id).name,'Known good');
+assert.equal(s.remove(sv.id),true);assert.equal(s.list().length,0);assert.equal(s.get('x'),null);assert.equal(s.exportProfile('x'),'');
+for(const bad of ['{nope','{"kind":"x"}','{"kind":"profile","schema":9}','{"kind":"profile","schema":1}','null'])assert.ok(s2.importProfile(bad).error,bad);
+const thrower={getItem(){throw new Error('no')},setItem(){throw new Error('no')}};
+const st=createProfileStore(thrower);assert.deepEqual(st.list(),[]);assert.ok(st.save('a','b',rep).error);assert.equal(st.get('a'),null);
+const quota={getItem:()=>null,setItem(){const e=new Error('q');e.name='QuotaExceededError';throw e}};
+assert.match(createProfileStore(quota).save('a','b',rep).error,/full/i);
+const capped=createProfileStore(mem(),'k',{maxProfiles:2});capped.save('a','',rep);capped.save('b','',rep);assert.ok(capped.save('c','',rep).error);
+assert.ok(createProfileStore(mem(),'k',{maxBytes:50}).save('a','',rep).error);
+const d=diffAgainstProfile(rep,{keys:[60],controls:{'1:1':{range:90,jitter:3}},pitch:{center:8200},advancedTests:[{id:'pitch',status:'investigate'},{id:'sweep',status:'ok'}]});
+assert.deepEqual(d.missingKeys,[61]);assert.equal(d.pitchCenterDelta,8);assert.deepEqual(d.testChanges.map(t=>t.id).sort(),['pitch','sweep']);
+assert.deepEqual(diffAgainstProfile({}, {}).testChanges,[]);
+const unit=(name,j,p,l,pk,keys=[60,61])=>({name,report:{keys,expected:{low:60,high:61},controls:{a:{jitter:j}},pitch:{center:p},latency:{median:l},messageRate:{peak:pk}}});
+let f=fleetOutliers([unit('a',1,8192,5,100),unit('b',1.1,8192,5.1,101),unit('c',0.9,8193,4.9,99),unit('d',1,8192,5,100),unit('bad',9,8100,5,100,[60])]);
+assert.equal(f.insufficient,false);const bad=f.rows.find(x=>x.name==='bad');
+assert.ok(bad.flags.includes('meanJitter')&&bad.flags.includes('pitchCenter')&&bad.flags.includes('missingKeys'));
+assert.ok(!bad.flags.includes('latencyMedian'));assert.equal(f.rows.filter(x=>x.name!=='bad'&&x.flags.length).length,0);
+f=fleetOutliers([unit('a',1,1,1,1),unit('b',9,9,9,9)]);assert.equal(f.insufficient,true);assert.equal(f.rows.length,2);assert.deepEqual(f.rows[0].flags,[]);
+assert.doesNotThrow(()=>fleetOutliers([{name:'x'},{},{report:{}},{name:'y',report:{}}]));
+
+// chartdata
+const N=100000,xs=Array.from({length:N},(_,i)=>i),ys=xs.map(i=>Math.sin(i/500));ys[54321]=50;
+const dec=decimateMinMax(xs,ys,200);assert.ok(dec.x.length<=400&&dec.x.length===dec.y.length);
+assert.ok(dec.y.includes(50));assert.ok(dec.x.every((v,i)=>i===0||v>dec.x[i-1]));
+const small={x:[1,2,3],y:[1,2,3]};const same=decimateMinMax(small.x,small.y,5);assert.deepEqual(same,small);
+assert.deepEqual(niceTicks(0,127),[0,50,100]);assert.deepEqual(niceTicks(0,127,8),[0,20,40,60,80,100,120]);
+assert.deepEqual(niceTicks(0,1),[0,0.2,0.4,0.6,0.8,1]);assert.deepEqual(niceTicks(5,5),[5]);assert.deepEqual(niceTicks(NaN,1),[]);
+assert.equal(percentile([1,2,3,4],50),2.5);assert.equal(percentile([1,2,3,4],0),1);assert.equal(percentile([1,2,3,4],100),4);assert.equal(percentile([],50),null);
+assert.deepEqual(rateTimeline([0,100,900,1000,2500]),[{t:0,rate:3},{t:1000,rate:1},{t:2000,rate:1}]);assert.deepEqual(rateTimeline([]),[]);
+assert.deepEqual(rateTimeline([0,100],500),[{t:0,rate:4}]);
+const h=histogramBins([0,1,2,3,4,10],2);assert.deepEqual(h.counts,[5,1]);assert.equal(h.edges.length,3);assert.deepEqual(histogramBins([],3),{edges:[],counts:[]});
+const b=boxStats([1,2,3,4,5]);assert.deepEqual(b,{min:1,q1:2,median:3,q3:4,max:5,iqr:2});assert.equal(boxStats([]),null);
+console.log('lib-b tests: PASS');

@@ -175,7 +175,7 @@ export function performanceStats(events=[]){
 
 export function reportSummary(state){return {version:REPORT_VERSION,device:state.device||'',started:state.started||null,durationMs:state.started?Date.now()-state.started:0,eventCount:state.events?.length||0,keys:[...(state.keys||[])].sort((a,b)=>a-b),channels:[...(state.channels||[])].sort((a,b)=>a-b),messageCounts:state.messageCounts||{},disconnects:state.disconnects||0,controls:state.controls||{},pitch:state.pitch||{}}}
 
-export const REPORT_VERSION=2;
+export const REPORT_VERSION=3;
 export function validateReport(obj){
   if(!obj||typeof obj!=='object'||Array.isArray(obj))return 'Report is not a JSON object.';
   if(typeof obj.version!=='number'||obj.version<1||obj.version>REPORT_VERSION)return 'Unsupported report version: '+(obj.version??'missing')+'.';

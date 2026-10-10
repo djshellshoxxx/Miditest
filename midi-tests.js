@@ -87,11 +87,12 @@ export function sweepQuality(values=[],times=[]){
   if(values.length<12)return {status:'notrun',samples:values.length};
   const d=[];for(let i=1;i<values.length;i++)if(values[i]!==values[i-1])d.push({d:values[i]-values[i-1],i,dt:times[i]!==undefined&&times[i-1]!==undefined?times[i]-times[i-1]:null});
   let backslides=0;for(let k=1;k<d.length-1;k++){const a=Math.sign(d[k-1].d),b=Math.sign(d[k].d),c=Math.sign(d[k+1].d);if(a===c&&a!==b&&Math.abs(d[k].d)<=3)backslides++}
-  // longest monotonic run (ignoring repeats)
-  let best={s:0,e:0,span:0},s=0;for(let k=1;k<=d.length;k++){if(k===d.length||Math.sign(d[k].d)!==Math.sign(d[s].d)){const span=Math.abs(values[d[k-1].i]-values[d[s].i-1]);if(span>best.span)best={s:s,e:k-1,span};s=k}}
-  const run=d.slice(best.s,best.e+1);if(best.span<30||run.length<6)return {status:'notrun',samples:values.length,span:best.span,backslides};
+  // sweep segment = between the first extreme and the opposite extreme (noise and backslides must not split it)
+  let lo=0,hi=0;for(let i=1;i<values.length;i++){if(values[i]<values[lo])lo=i;if(values[i]>values[hi])hi=i}
+  const from=Math.min(lo,hi),to=Math.max(lo,hi),best={span:Math.abs(values[hi]-values[lo])},run=d.filter(x=>x.i>from&&x.i<=to);
+  if(best.span<30||run.length<6)return {status:'notrun',samples:values.length,span:best.span,backslides};
   const coarse=run.filter(x=>x.dt!==null&&x.dt>=40&&Math.abs(x.d)>=3).length;
-  const i0=run[0].i-1,i1=run.at(-1).i,pts=[];for(let i=i0;i<=i1;i++)pts.push([times[i]??i,values[i]]);
+  const i0=from,i1=to,pts=[];for(let i=i0;i<=i1;i++)pts.push([times[i]??i,values[i]]);
   const n=pts.length,mx=mean(pts.map(p=>p[0])),my=mean(pts.map(p=>p[1]));let sxy=0,sxx=0,syy=0;for(const [x,y] of pts){sxy+=(x-mx)*(y-my);sxx+=(x-mx)**2;syy+=(y-my)**2}
   const r2=sxx&&syy?sxy*sxy/(sxx*syy):1,slope=sxx?sxy/sxx:0,maxDev=Math.max(...pts.map(([x,y])=>Math.abs(y-(my+slope*(x-mx)))))/best.span*100;
   const status=backslides>=2||coarse>=2?'attention':'ok';
@@ -239,3 +240,6 @@ export function buildTestResults(inp={}){
   add('burst',b.status,b.stages.length?'Worst loss '+Math.max(...b.stages.map(s=>s.lossPct))+'%':'Not run',[['Stages',b.stages.length]],{rows:b.stages.map(s=>s.label+': sent '+s.sent+', received '+s.received+', lost '+s.lost+' ('+s.lossPct+'%), duplicates '+s.duplicates+', out of order '+s.outOfOrder+', median latency '+f1(s.medianLatencyMs)+' ms')});
   return res;
 }
+
+// Glossary term ids (data/glossary.json) shown as buttons in each card's details.
+export const TEST_TERMS={protocol:['undefined-status','running-status','channel-mode','system-reset'],link:['active-sensing','midi-clock','usb-midi','selective-suspend'],retrigger:['key-bounce','double-trigger'],velocity:['velocity','repeatability','release-velocity'],rollover:['rollover','ghosting'],sweep:['backslide','coarse-step','linearity','dead-zone'],encoder:['relative-encoder','direction-glitch'],pitch:['pitch-bend','center-return','overshoot'],pedal:['sustain-pedal','polarity','half-damper'],burst:['loopback','burst-test','din-baud-limit']};

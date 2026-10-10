@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit and static tests
+        run: npm test
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+      - name: Browser integration tests (mock Web MIDI)
+        run: node tests/browser.test.mjs
+
+  windows-scan:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: winscan.ps1 syntax check
+        shell: pwsh
+        run: |
+          $errs = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD/winscan.ps1", [ref]$null, [ref]$errs)
+          if ($errs) { $errs | ForEach-Object { Write-Error $_.ToString() }; exit 1 }
+          Write-Host 'winscan.ps1 parses cleanly'
+      - name: winscan.ps1 smoke run (read-only, Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $env:MIDITEST_DAYS = '1'
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          $out = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PWD\winscan.ps1" | Out-String
+          $sw.Stop()
+          $j = $out | ConvertFrom-Json
+          if (-not $j.generated) { Write-Error 'scan produced no JSON'; exit 1 }
+          Write-Host ("scan ok in {0:n1}s: schema={1} events={2} devices={3} services={4} setupapi={5} history={6} errors={7}" -f $sw.Elapsed.TotalSeconds, $j.schema, @($j.events).Count, @($j.devices).Count, @($j.services).Count, @($j.setupapi).Count, @($j.usbHistory).Count, @($j.errors).Count)
+          Write-Host ('os=' + $j.os + ' build=' + $j.build)
+          @($j.errors) | ForEach-Object { Write-Host ('scan note: ' + $_) }
+          if ($sw.Elapsed.TotalSeconds -gt 110) { Write-Error 'scan too slow'; exit 1 }
