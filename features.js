@@ -10,6 +10,8 @@ import {parseUmpHex,decodeUmp} from './lib/ump.js';
 import {ACTIVE_TESTS,buildPlan,evaluate,planDurationMs} from './lib/active-tests.js';
 import {createClockScheduler,clockMeasure} from './lib/clockgen.js';
 import {STATUS_LABEL} from './midi-tests.js';
+import {validateReportV3} from './lib/schema.js';
+const MAX_IMPORT=8*1024*1024;
 
 // DOM ids this module needs; tests/ui-static.test.mjs checks they exist in index.html.
 export const FEATURE_IDS=['appVersion','preset','glossaryBtn','glossaryDialog','glossarySearch','glossaryList','labsList','checklistPanel','checklistBody','checklistSub','ckTech','ckSerial','ckPrint','recStart','recStop','recSave','capLoad','replayMode','replayRun','replayStop','recStatus','umpText','umpDecode','umpOut','umpEnv','chartSelect','chartControl','chartCanvas','chartInfo','chartTable','chartPng','chartCsv','activeList','activeChannel','activeCc','activeRun','activeCancel','activeStatus','activeResults','sysDev','sysIdentity','sysIdentityOut','sysHex','sysSend','sysCsKind','sysCsBtn','sysCapA','sysCapB','sysDiffBtn','sysStatus','sysLog','clkBpm','clkStart','clkCont','clkStop','clkStatus','clkResult','inputB','pathStart','pathStop','pathStatus','pathOut','pfName','pfSave','pfSelect','pfCompare','pfExport','pfDelete','pfImport','fleetImport','pfStatus','fleetOut','exportHtml'];
@@ -28,6 +30,8 @@ export function initFeatures(api){
   const requireOutput=()=>{if(!api.getOutput()){setStatus('Select a MIDI output first.','attention');return false}return true};
   const printHtml=html=>{const f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';f.srcdoc=html;f.onload=()=>{try{f.contentWindow.focus();f.contentWindow.print()}finally{setTimeout(()=>f.remove(),2000)}};document.body.append(f)};
 
+  const readLimited=async(file,max=MAX_IMPORT)=>{if(file.size>max)throw new Error(file.name+' is larger than '+Math.round(max/1048576)+' MB.');return file.text()};
+
   // ---------- Labs flags ----------
   function applyFlags(){for(const el of $$('[data-flag]'))el.hidden=!on(el.dataset.flag);}
   function activeViewId(){return document.querySelector('.view.active-view')?.id||'quick'}
@@ -45,7 +49,7 @@ export function initFeatures(api){
     get('glossaryList').innerHTML=g.length?g.map(x=>'<section class="win-finding"><h3>'+esc(x.term)+'</h3><p><strong>'+esc(x.short)+'</strong></p><p>'+esc(x.long)+'</p>'+((x.related||[]).length?'<p>Related: '+x.related.map(r=>'<button type="button" class="term" data-gloss="'+esc(r)+'">'+esc(r.replace(/-/g,' '))+'</button>').join(' ')+'</p>':'')+'</section>').join(''):'<p class="muted">No matching terms.</p>';
   }
   get('glossaryBtn').onclick=()=>openGlossary();
-  get('glossarySearch').addEventListener('input',()=>renderGlossary());
+  get('glossarySearch').addEventListener('input',()=>renderGlossary());get('glossarySearch').addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault()});
   document.addEventListener('click',e=>{const t=e.target.closest?.('[data-term],[data-gloss]');if(!t)return;e.preventDefault();openGlossary(t.dataset.term||t.dataset.gloss)});
 
   // ---------- Record & replay (F04) ----------
@@ -60,10 +64,10 @@ export function initFeatures(api){
   get('capLoad').onchange=async()=>{const f=get('capLoad').files?.[0];get('capLoad').value='';if(!f)return;if(f.size>60*1024*1024){get('recStatus').textContent='Capture file is larger than 60 MB.';return}
     const r=parseCapture(await f.text());if(r.error){get('recStatus').textContent='Could not load capture: '+r.error;return}loaded={events:r.events,meta:r.meta};get('recStatus').textContent='Loaded '+r.events.length.toLocaleString()+' event(s) from '+f.name+(r.meta.device?' ('+r.meta.device+')':'')+'. Press Replay.';recUi()};
   function replayOne(x){api.onMidi({data:Uint8Array.from(x.bytes),replayT:x.t,replayed:true,currentTarget:{id:x.deviceId||'replay',name:loaded.meta.device||'Replay'}})}
-  function endReplay(note){clearInterval(replayTimer);replayTimer=null;replaying=false;api.setBulk(false);const inp=api.getInput();if(inp&&!inp.onmidimessage)inp.onmidimessage=api.onMidi;api.rebuildMonitor();renderAll(true);get('recStatus').textContent=note;recUi()}
+  function endReplay(note){clearInterval(replayTimer);replayTimer=null;replaying=false;api.setBulk(false);api.setReplayLock(false);const inp=api.getInput();if(inp&&inp.onmidimessage!==api.onMidi)inp.onmidimessage=api.onMidi;api.rebuildMonitor();renderAll(true);get('recStatus').textContent=note;recUi()}
   get('replayRun').onclick=async()=>{
     if(!loaded||replaying)return;const mode=get('replayMode').value,evs=loaded.events,inp=api.getInput();
-    api.resetState(true);state.device=loaded.meta.device||'Replay';replaying=true;if(inp)inp.onmidimessage=null;recUi();
+    api.resetState(true);state.device=loaded.meta.device||'Replay';replaying=true;api.setReplayLock(true);if(inp)inp.onmidimessage=null;recUi();
     if(mode==='instant'){api.setBulk(true);get('recStatus').textContent='Analysing '+evs.length.toLocaleString()+' event(s)…';
       for(let i=0;i<evs.length&&replaying;i+=2000){for(const x of evs.slice(i,i+2000))replayOne(x);await new Promise(r=>setTimeout(r,0))}
       endReplay('Replay analysed '+evs.length.toLocaleString()+' event(s). Only the most recent 5,000 events are kept for event-based tests; controls keep their last 1,000 values.');return}
@@ -108,13 +112,13 @@ export function initFeatures(api){
   function refreshProfiles(){const l=store.list();get('pfSelect').innerHTML=l.length?l.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join(''):'<option value="">No profiles</option>'}
   const pfMsg=t=>{get('pfStatus').textContent=t};
   get('pfSave').onclick=()=>{const r=store.save(get('pfName').value.trim()||state.device||'Unnamed',state.device,buildReport());if(r.error)pfMsg(r.error);else{pfMsg('Profile saved.');get('pfName').value='';refreshProfiles();get('pfSelect').value=r.id}};
-  get('pfCompare').onclick=()=>{const p=store.get(get('pfSelect').value);if(!p){pfMsg('Select a profile first.');return}state.importedReport=p.report;const d=diffAgainstProfile(p.report,buildReport());viewRenderers.reportView();pfMsg('Comparing with "'+p.name+'". '+(d.testChanges?.length?d.testChanges.length+' test status change(s): '+d.testChanges.map(c=>c.id+' '+c.from+'→'+c.to).join(', '):'No test status changes.'))};
+  get('pfCompare').onclick=()=>{const p=store.get(get('pfSelect').value);if(!p){pfMsg('Select a profile first.');return}const bad=validateReportV3(p.report);if(bad){pfMsg('This profile cannot be compared: '+bad);return}let d;try{d=diffAgainstProfile(p.report,buildReport())}catch(e){pfMsg('Comparison failed: '+(e?.message||e));return}state.importedReport=p.report;viewRenderers.reportView();pfMsg('Comparing with "'+p.name+'". '+(d.testChanges?.length?d.testChanges.length+' test status change(s): '+d.testChanges.map(c=>c.id+' '+c.from+'→'+c.to).join(', '):'No test status changes.'))};
   get('pfExport').onclick=()=>{const t=store.exportProfile(get('pfSelect').value);if(!t){pfMsg('Select a profile first.');return}download('miditest-profile.json',t,'application/json')};
   get('pfDelete').onclick=()=>{const id=get('pfSelect').value;if(id&&confirm('Delete this profile?')){store.remove(id);refreshProfiles();pfMsg('Profile deleted.')}};
-  get('pfImport').onchange=async()=>{const f=get('pfImport').files?.[0];get('pfImport').value='';if(!f)return;const r=store.importProfile(await f.text());if(r.error)pfMsg(r.error);else{pfMsg('Profile imported.');refreshProfiles()}};
+  get('pfImport').onchange=async()=>{const f=get('pfImport').files?.[0];get('pfImport').value='';if(!f)return;let r;try{const txt=await readLimited(f);const o=JSON.parse(txt.replace(/^\uFEFF/,''));const bad=o&&typeof o==='object'?validateReportV3(o.report):'Not a profile file.';r=bad?{error:'Not a valid profile: '+bad}:store.importProfile(txt)}catch(e){r={error:'Could not import: '+(e?.message||e)}}if(r.error)pfMsg(r.error);else{pfMsg('Profile imported.');refreshProfiles()}};
   get('fleetImport').onchange=async()=>{
     const files=[...(get('fleetImport').files||[])];get('fleetImport').value='';const units=[],bad=[];
-    for(const f of files){try{const o=JSON.parse(await f.text());if(!o||typeof o!=='object'||typeof o.eventCount!=='number')throw 0;units.push({name:(o.device||f.name)+' ('+f.name+')',report:o})}catch{bad.push(f.name)}}
+    for(const f of files){try{const o=JSON.parse((await readLimited(f)).replace(/^\uFEFF/,''));if(validateReportV3(o))throw 0;units.push({name:(o.device||f.name)+' ('+f.name+')',report:o})}catch{bad.push(f.name)}}
     if(!units.length){get('fleetOut').innerHTML='<p class="muted">No valid reports. '+esc(bad.join(', '))+'</p>';return}
     const r=fleetOutliers(units),cols=['missingKeys','meanJitter','pitchCenter','latencyMedian','peakRate'];
     get('fleetOut').innerHTML='<h3>Fleet comparison</h3>'+(r.insufficient?'<p class="muted">Fewer than 4 units: raw values only, outliers are not flagged.</p>':'')+(bad.length?'<p class="muted">Skipped: '+esc(bad.join(', '))+'</p>':'')+'<table class="report-table"><thead><tr><th>Unit</th>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'+r.rows.map(x=>'<tr><td>'+esc(x.name)+'</td>'+cols.map(c=>'<td'+(x.flags.includes(c)?' class="s-flag"':'')+'>'+esc(f1(x.metrics[c]))+(x.flags.includes(c)?' ⚠':'')+'</td>').join('')+'</tr>').join('')+'</tbody></table><p class="muted">⚠ = differs from the other units by more than 3.5 robust deviations.</p>'};
@@ -175,8 +179,8 @@ export function initFeatures(api){
   const origMon=viewRenderers.monitorView;viewRenderers.monitorView=()=>{origMon();const env=state.winAnalysis?.environment;get('umpEnv').textContent=env?'Windows build '+env.build+': MIDI 2.0 stack '+(env.midi2Capable?'available':'not available')+', Windows MIDI service '+(env.midiServices?'running':'not running')+'. The browser still sees the MIDI 1.0 translation only. Paste UMP words below to decode a UMP capture.':'Browsers only see the MIDI 1.0 translation of MIDI 2.0 devices. Run a Windows log scan to show whether the Windows MIDI 2.0 stack is present. Paste UMP words below to decode a UMP capture.'};
 
   // ---------- Active tests (F01) ----------
-  state.activeResults=[];let activeRun=null,activeConfirmed=false;const received=[];
-  api.onIngest(e=>{if(activeRun&&e.raw[0]<0xF8)received.push({bytes:e.raw,t:e.t})});
+  state.activeResults=[];let activeRun=null,activeConfirmedPort=null;const received=[];
+  api.onIngest(e=>{if(!activeRun)return;e.loopback=true;if(e.raw[0]<0xF8)received.push({bytes:e.raw,t:e.t})});
   get('activeList').innerHTML=ACTIVE_TESTS.map(t=>'<label class="check" title="'+esc(t.description||'')+'"><input type="checkbox" data-active="'+esc(t.id)+'" checked> '+esc(t.title)+'</label>').join(' ');
   const ACTIVE_MEANING={ok:'Every message came back exactly as sent, in order. The send/receive path (browser, driver, cable and device echo) is reliable for this message type.',attention:'Everything sent came back, but extra or duplicate messages were also seen. Something on the route is echoing or merging traffic; check for MIDI feedback loops or a Thru setting.',investigate:'Messages were lost, changed, re-ordered or appeared on another channel. That points to the route (cable, interface, driver, hub) or the device altering data. Re-test with a different cable/port; if it persists the device firmware or channel filter is suspect.',notrun:'Nothing came back. Check that the selected output is physically or virtually looped to the selected input, then run again.'};
   function panicSend(ch){for(const cc of [123,120,121])try{api.getOutput()?.send([0xB0|ch,cc,0])}catch{}}
@@ -185,26 +189,32 @@ export function initFeatures(api){
     if(activeRun)return;if(!api.getInput()||!api.getOutput()){get('activeStatus').textContent='Select both an input and an output (looped back) first.';return}
     if(state.loopback?.active||state.burst?.active){get('activeStatus').textContent='Another loopback test is running.';return}
     const ids=$$('[data-active]').filter(c=>c.checked).map(c=>c.dataset.active);if(!ids.length){get('activeStatus').textContent='Tick at least one test.';return}
-    if(!activeConfirmed){if(!confirm('Active tests send MIDI to "'+api.portName(api.getOutput())+'". Notes, controller moves and program changes will reach whatever is connected to that output. Continue?'))return;activeConfirmed=true}
+    if(activeConfirmedPort!==api.getOutput().id){if(!confirm('Active tests send MIDI to "'+api.portName(api.getOutput())+'". Notes, controller moves and program changes will reach whatever is connected to that output. Continue?'))return;activeConfirmedPort=api.getOutput().id}
     const ch=api.clamp(get('activeChannel').value,1,16)-1,cc=api.clamp(get('activeCc').value,1,31);state.activeResults=[];get('activeCancel').disabled=false;get('activeRun').disabled=true;
     activeRun={timers:[],cancelled:false,ch};
     for(const id of ids){if(activeRun.cancelled)break;
       const plan=buildPlan(id,{channel:ch,cc,velocity:64});received.length=0;get('activeStatus').textContent='Running: '+(ACTIVE_TESTS.find(t=>t.id===id)?.title||id)+' ('+plan.steps.length+' messages)…';
-      await new Promise(res=>{let at=0;plan.steps.forEach(s=>{at+=s.delayMs;activeRun.timers.push(setTimeout(()=>{try{api.getOutput().send(s.bytes)}catch{}},at))});activeRun.timers.push(setTimeout(res,planDurationMs(plan)+plan.timeoutMs+50));activeRun.finish=res});
+      await new Promise(res=>{let at=0;plan.steps.forEach(s=>{at+=s.delayMs;activeRun.timers.push(setTimeout(()=>{try{api.getOutput().send(s.bytes)}catch{}},at))});activeRun.timers.push(setTimeout(res,planDurationMs(plan)+50));activeRun.finish=res});
       if(activeRun.cancelled)break;const r=evaluate(plan,received.slice());state.activeResults.push({...r,title:ACTIVE_TESTS.find(t=>t.id===id)?.title||id});renderActive()}
     panicSend(ch);const wasCancelled=activeRun.cancelled;activeRun=null;get('activeCancel').disabled=true;get('activeRun').disabled=false;get('activeStatus').textContent=wasCancelled?'Cancelled. A channel panic was sent.':'Active tests finished.';renderActive()};
   get('activeCancel').onclick=()=>{if(!activeRun)return;activeRun.cancelled=true;activeRun.timers.forEach(clearTimeout);panicSend(activeRun.ch);activeRun.finish?.()};
 
   // ---------- Clock generator (F09) ----------
-  const clkSent=[],clkRecv=[];let clkMeasuring=false;
-  const sched=createClockScheduler({send:(bytes,when)=>{try{api.getOutput()?.send(bytes,when);if(bytes[0]===0xF8&&clkMeasuring)clkSent.push(when)}catch{}},now:()=>performance.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id)});
-  api.onIngest(e=>{if(clkMeasuring&&e.raw[0]===0xF8)clkRecv.push(e.t)});
-  get('clkStart').onclick=()=>{if(!requireOutput())return;if(!confirm('Send MIDI clock/Start to "'+api.portName(api.getOutput())+'"? Connected sequencers or drum machines will start.'))return;const bpm=api.clamp(get('clkBpm').value,30,300);clkSent.length=0;clkRecv.length=0;clkMeasuring=true;sched.start(bpm);get('clkStatus').textContent='Sending clock at '+bpm+' BPM… press Stop to measure.';get('clkResult').innerHTML=''};
-  get('clkCont').onclick=()=>{if(!requireOutput())return;clkMeasuring=true;sched.cont();get('clkStatus').textContent='Continue sent; clock running.'};
-  function stopClock(){if(!sched.isRunning()&&!clkMeasuring)return;const bpm=sched.stats().bpm||Number(get('clkBpm').value)||120;sched.stop();clkMeasuring=false;
-    if(clkRecv.length<8||clkSent.length<8){get('clkStatus').textContent='Stopped. Not enough returned clock to measure ('+clkRecv.length+' received). Loop the output back to the input to measure tempo accuracy.';return}
-    const m=clockMeasure(clkSent.slice(),clkRecv.slice(),bpm),errPct=m.bpmMeasured?Math.abs(m.bpmMeasured-bpm)/bpm*100:null,status=m.lost>0||(m.jitterRmsMs??0)>3||(errPct??0)>1?'attention':'ok';
-    get('clkStatus').textContent='Stopped. Measurement complete.';get('clkResult').innerHTML='<p>'+chip(status,status==='ok'?'No concern observed':'Attention')+'</p><div class="metric-grid">'+metric('Ticks paired',m.ticks)+metric('Measured BPM',f1(m.bpmMeasured))+metric('Tempo error %',f1(errPct))+metric('Drift ppm',f1(m.driftPpm))+metric('Jitter RMS ms',f1(m.jitterRmsMs))+metric('Max deviation ms',f1(m.maxDeviationMs))+metric('Lost ticks',m.lost)+'</div><p><strong>What this means:</strong> Tempo error and drift show how faithfully the route reproduces the set tempo; jitter is timing wobble after removing constant latency and linear drift. Lost ticks mean the route dropped clock messages. Browser timers are limited by the OS and driver, so small jitter is normal.</p>'}
+  const clkSent=[],clkRecv=[];let clkMeasuring=false,clkOut=null;
+  // Timer driven from a Worker so a background tab does not throttle the clock to ~1 Hz.
+  const timerWorker=(()=>{try{const w=new Worker(URL.createObjectURL(new Blob(['onmessage=e=>setTimeout(()=>postMessage(e.data.id),e.data.ms)'],{type:'text/javascript'})));const cbs=new Map();let n=0;w.onmessage=e=>{const f=cbs.get(e.data);cbs.delete(e.data);f?.()};return {set:(f,ms)=>{const id=++n;cbs.set(id,f);w.postMessage({id,ms});return id},clear:id=>cbs.delete(id)}}catch{return {set:(f,ms)=>setTimeout(f,ms),clear:id=>clearTimeout(id)}}})();
+  const sched=createClockScheduler({send:(bytes,when)=>{try{clkOut?.send(bytes,when);if(bytes[0]===0xF8&&clkMeasuring)clkSent.push(when)}catch{}},now:()=>performance.now(),setTimer:timerWorker.set,clearTimer:timerWorker.clear});
+  api.onIngest(e=>{if(clkMeasuring&&e.raw[0]===0xF8){clkRecv.push(e.t);e.loopback=true}});
+  const clkConfirm=()=>{if(!requireOutput())return false;if(!confirm('Send MIDI clock/transport to "'+api.portName(api.getOutput())+'"? Connected sequencers or drum machines will start.'))return false;clkOut=api.getOutput();clkSent.length=0;clkRecv.length=0;clkMeasuring=true;get('clkResult').innerHTML='';return true};
+  get('clkStart').onclick=()=>{if(!clkConfirm())return;const bpm=api.clamp(get('clkBpm').value,30,300);sched.start(bpm);get('clkStatus').textContent='Sending clock at '+bpm+' BPM… press Stop to measure.'};
+  get('clkCont').onclick=()=>{if(!clkConfirm())return;sched.cont();get('clkStatus').textContent='Continue sent; clock running.'};
+  function stopClock(){if(!sched.isRunning()&&!clkMeasuring)return;const bpm=sched.stats().bpm||Number(get('clkBpm').value)||120;sched.stop();
+    get('clkStatus').textContent='Stopped (Stop sent). Measuring…';
+    // wait for the ~60 ms of already-scheduled ticks to arrive before pairing
+    setTimeout(()=>{clkMeasuring=false;clkOut=null;
+      if(clkRecv.length<8||clkSent.length<8){get('clkStatus').textContent='Stopped. Not enough returned clock to measure ('+clkRecv.length+' received). Loop the output back to the input to measure tempo accuracy.';return}
+      const m=clockMeasure(clkSent.slice(),clkRecv.slice(),bpm),errPct=m.bpmMeasured?Math.abs(m.bpmMeasured-bpm)/bpm*100:null,status=m.lost>0||(m.jitterRmsMs??0)>2||(errPct??0)>0.5?'attention':'ok';
+      get('clkStatus').textContent='Stopped. Measurement complete.';get('clkResult').innerHTML='<p>'+chip(status,status==='ok'?'No concern observed':'Attention')+'</p><div class="metric-grid">'+metric('Ticks paired',m.ticks)+metric('Measured BPM',f1(m.bpmMeasured))+metric('Tempo error %',f1(errPct))+metric('Drift ppm',f1(m.driftPpm))+metric('Jitter RMS ms',f1(m.jitterRmsMs))+metric('Max deviation ms',f1(m.maxDeviationMs))+metric('Lost ticks',m.lost)+'</div><p><strong>What this means:</strong> Tempo error and drift show how faithfully the route reproduces the set tempo (attention above 0.5 %); jitter is timing wobble after removing constant latency and linear drift (attention above 2 ms RMS). Lost ticks mean the route dropped clock messages. Browser timers are limited by the OS and driver, so small jitter is normal.</p>'},250)}
   get('clkStop').onclick=stopClock;window.addEventListener('pagehide',()=>{try{if(sched.isRunning())sched.stop()}catch{}});
 
   // ---------- Path comparison (F10) ----------
@@ -213,14 +223,19 @@ export function initFeatures(api){
   get('inputB').addEventListener('focus',fillInputB);get('inputB').addEventListener('mousedown',fillInputB);
   api.onIngest(e=>{if(pathB&&e.kind!=='active'&&!e.replayed){pathA.push({t:e.t,key:e.hex});if(pathA.length>5000)pathA.shift()}});
   function comparePaths(){
-    const used=new Set();let matched=0;const lat=[];
-    for(const a of pathA){let hit=-1;for(let j=0;j<pathBMsgs.length;j++){if(used.has(j)||pathBMsgs[j].key!==a.key)continue;if(Math.abs(pathBMsgs[j].t-a.t)<=50){hit=j;break}}if(hit>=0){used.add(hit);matched++;lat.push(pathBMsgs[hit].t-a.t)}}
-    const lost=pathA.length-matched,extra=pathBMsgs.length-used.size,status=!pathA.length?'notrun':lost?'investigate':extra?'attention':'ok';
+    const byKey=new Map();for(const m of pathBMsgs){if(!byKey.has(m.key))byKey.set(m.key,[]);byKey.get(m.key).push({t:m.t,used:false})}
+    let matched=0,usedCount=0;const lat=[];
+    for(const a of pathA){const list=byKey.get(a.key);if(!list)continue;const hit=list.find(x=>!x.used&&Math.abs(x.t-a.t)<=50);if(hit){hit.used=true;usedCount++;matched++;lat.push(hit.t-a.t)}}
+    const lost=pathA.length-matched,extra=pathBMsgs.length-usedCount,status=!pathA.length?'notrun':lost?'investigate':extra?'attention':'ok';
     get('pathOut').innerHTML='<p>'+chip(status,STATUS_LABEL[status])+'</p><div class="metric-grid">'+metric('A messages',pathA.length)+metric('B messages',pathBMsgs.length)+metric('Matched',matched)+metric('On A only (lost on path B)',lost)+metric('On B only',extra)+metric('Median A→B ms',f1(median(lat)))+'</div><p><strong>What this means:</strong> Messages seen on input A but not on input B (within 50 ms) were lost or changed between the two points. Messages only on B were injected or altered. This only compares paths that carry the same MIDI; use it when both inputs should see the same traffic.</p>'}
   get('pathStart').onclick=()=>{const acc=api.getAccess(),id=get('inputB').value;if(!acc||!id||!acc.inputs.has(id)){get('pathStatus').textContent='Enable MIDI and choose Input B.';return}if(!api.getInput()){get('pathStatus').textContent='Select the main input (A) first.';return}
     pathB=acc.inputs.get(id);if(pathB===api.getInput()){pathB=null;get('pathStatus').textContent='Input B must differ from input A.';return}pathA=[];pathBMsgs=[];pathB.onmidimessage=ev=>{const d=[...ev.data];if(d[0]===0xFE)return;pathBMsgs.push({t:performance.now(),key:d.map(x=>x.toString(16).padStart(2,'0').toUpperCase()).join(' ')});if(pathBMsgs.length>5000)pathBMsgs.shift()};
     get('pathStart').disabled=true;get('pathStop').disabled=false;get('pathStatus').textContent='Comparing '+api.portName(api.getInput())+' (A) with '+api.portName(pathB)+' (B)…';pathTimer=setInterval(comparePaths,1000)};
   get('pathStop').onclick=()=>{clearInterval(pathTimer);if(pathB)pathB.onmidimessage=null;comparePaths();pathB=null;get('pathStart').disabled=false;get('pathStop').disabled=true;get('pathStatus').textContent='Stopped.'};
+
+  // ---------- Reset / port-change safety ----------
+  api.onReset(()=>{for(const k of Object.keys(manual))delete manual[k];for(const k of Object.keys(skipped))delete skipped[k];state.identity=null;state.activeResults=[];dumps.A=dumps.B=null;get('sysIdentityOut').innerHTML='';get('activeResults').innerHTML='';get('clkResult').innerHTML='';if(sched.isRunning())stopClock();if(pathB)get('pathStop').click()});
+  api.onPortChange(()=>{if(sched.isRunning())stopClock();if(pathB&&(api.getInput()===pathB||!api.getAccess()?.inputs.has(pathB.id)||pathB.state!=='connected'))get('pathStop').click()});
 
   // ---------- Accessibility: roving tabs with arrow keys ----------
   const tabs=$$('.tab');

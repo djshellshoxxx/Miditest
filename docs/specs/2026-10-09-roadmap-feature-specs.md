@@ -2,6 +2,9 @@
 
 Baseline: v0.01-beta + Tests/Windows Logs tabs (`main` @ 67f7b96). Read `docs/specs/2026-10-08-advanced-tests-and-windows-logs-spec.md` first. Plan, ordering and release gates: `docs/plans/2026-10-09-implementation-plan.md`.
 
+## Implementation status (0.2.0-beta)
+Implemented: F01 (without "Observed" mode/progress bar), F02 (no 88-key list), F03 (outlier rule = robust z > 3.5), F04 (instant/real-time/4x replay; no scrub/pause/0.25-8x), F05, F06 (single series, no box plot/pan/zoom), F07, F08 v1 (decoder + environment), F09 (no SPP UI/bar-aligned start), F10 (path comparison, not full dual-device state), F11 (HTML report; no PDF/IPC, no charts), F15 (glossary + term buttons). Not started: F12, F13, F14 i18n (keyboard tab navigation done), P0-1 modularization (new code lives in features.js/lib/ instead), Electron smoke test, ESLint.
+
 ## 0. Conventions every spec assumes
 - **Code layout (after P0-1):** pure logic in `lib/*.js` (no DOM, unit-testable in Node); DOM code in `ui/*.js`; `app-v2.js` only wires modules. Electron-only code in `desktop/*.cjs`, exposed through `desktop/preload.cjs` with one narrow, validated IPC channel per capability.
 - **Result vocabulary:** `notrun | info | ok | attention | investigate` (see Tests spec §2). Never claim a repair diagnosis.

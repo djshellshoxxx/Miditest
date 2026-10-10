@@ -15,7 +15,7 @@ const p=parseCapture('﻿'+txt);
 assert.equal(p.error,undefined);assert.equal(p.events.length,2);assert.equal(p.meta.device,'KB');assert.equal(p.meta.schema,1);assert.equal(p.meta.notes,'n');
 const mk=o=>JSON.stringify({kind:'capture',schema:1,events:[],...o});
 const ev=(t,bytes)=>({t,deviceId:'x',bytes});
-for(const bad of ['nope','[]','null',mk({kind:'x'}),mk({schema:2}),mk({events:{}}),mk({events:[ev(0,[])]}),mk({events:[ev(0,[0x90,256])]}),mk({events:[ev(0,[0x90,1.5])]}),mk({events:[ev(0,[60,1])]}),mk({events:[ev(null,[0x90])]}),mk({events:[ev(5,[0x90]),ev(4,[0x90])]}),mk({events:[ev(0,new Array(4097).fill(0x90))]})])
+for(const bad of ['nope','[]','null',mk({kind:'x'}),mk({schema:2}),mk({events:{}}),mk({events:[ev(0,[])]}),mk({events:[ev(0,[0x90,256])]}),mk({events:[ev(0,[0x90,1.5])]}),mk({events:[ev(0,[60,1])]}),mk({events:[ev(null,[0x90])]}),mk({events:[ev(5,[0x90]),ev(4,[0x90])]}),mk({events:[ev(0,new Array(1048577).fill(0x90))]})])
   assert.ok(parseCapture(bad).error,bad.slice(0,60));
 assert.ok(parseCapture(mk({events:new Array(CAPTURE_MAX_EVENTS+1).fill(ev(0,[0x90]))})).error);
 assert.ok(parseCapture(undefined).error);

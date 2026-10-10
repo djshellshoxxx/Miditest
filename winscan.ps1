@@ -38,7 +38,7 @@ $services = @(Get-Service Audiosrv, AudioEndpointBuilder, PlugPlay, MidiSrv | Fo
 $sus = $null
 try {
   $q = powercfg /query SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 | Out-String
-  $sus = [pscustomobject]@{ ac = ([regex]::Match($q, 'Current AC Power Setting Index:\s*(0x[0-9a-fA-F]+)').Groups[1].Value); dc = ([regex]::Match($q, 'Current DC Power Setting Index:\s*(0x[0-9a-fA-F]+)').Groups[1].Value) }
+  $hex = @([regex]::Matches($q, '0x[0-9a-fA-F]{8}') | ForEach-Object { $_.Value }); if ($hex.Count -ge 2) { $sus = [pscustomobject]@{ ac = $hex[$hex.Count - 2]; dc = $hex[$hex.Count - 1] } }
 } catch { [void]$errs.Add("powercfg: $($_.Exception.Message)") }
 $setup = @()
 try {
