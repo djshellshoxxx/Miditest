@@ -18,6 +18,10 @@ assert.doesNotMatch(html,/\son[a-z]+="/,'no inline event handlers');
 assert.doesNotMatch(html+app,/\\n(function|<\/body>|\[els)/,'no literal \\n artifacts');
 for(const id of required)assert.match(html,new RegExp('id="'+id+'"'),'missing DOM id '+id);
 
+const features=readFileSync(new URL('../features.js',import.meta.url),'utf8');
+const fids=(await import('../features.js')).FEATURE_IDS;
+for(const id of fids)assert.match(html,new RegExp('id="'+id+'"'),'features.js references missing DOM id '+id);
+for(const m of features.matchAll(/get\('([A-Za-z0-9]+)'\)/g))assert.ok(fids.includes(m[1]),'features.js uses id not in FEATURE_IDS: '+m[1]);
 assert.match(css,/:focus-visible/);
 assert.match(css,/prefers-reduced-motion/);
 assert.match(css,/@media\(max-width:700px\)/);

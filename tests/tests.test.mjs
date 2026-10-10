@@ -85,6 +85,9 @@ const scan={generated:'x',os:'Win',days:7,events:[e('Microsoft-Windows-Kernel-Pn
 const an=analyzeWindowsScan(scan,{windowStart:Date.parse('2026-10-08T09:59:00Z')});
 assert.equal(an.status,'investigate');assert.ok(an.counts.duringTest>=1);assert.ok(an.findings.some(f=>/Code 43/.test(f.title)));assert.ok(an.findings.some(f=>f.category==='Power'));assert.ok(an.findings.some(f=>f.category==='Service'));assert.ok(an.findings.some(f=>f.source==='setupapi.dev.log'));assert.equal(an.logs.length,2);
 assert.equal(analyzeWindowsScan({}).status,'ok');
+const f5=analyzeWindowsScan({generated:'2026-10-08T12:00:00Z',days:7,build:26100,services:[{name:'MidiSrv',displayName:'Windows MIDI Service',status:'Running',startType:'Automatic'}],usbHistory:[{id:'x',name:'Pad',arrivals:9}],usbTree:[{id:'x',path:['Pad','USB Composite','Generic USB Hub','Generic USB Hub','xHCI']}],drivers:[{deviceId:'x',name:'Old drv',version:'1.0',date:'2020-01-01',provider:'Acme',signed:true},{deviceId:'y',name:'Bad drv',signed:false}],events:[e('Microsoft-Windows-Kernel-PnP',219,'driver failed to load usb')],changes:{driverInstalls:[{time:'2026-10-08T08:00:00Z',message:'m'}],hotfixes:[]}});
+assert.ok(f5.findings.some(f=>/reconnected 9/.test(f.title)));assert.ok(f5.findings.some(f=>/hub levels/.test(f.title)));assert.ok(f5.findings.some(f=>/years old/.test(f.title)));assert.ok(f5.findings.some(f=>/not signed/.test(f.title)));assert.ok(f5.findings.some(f=>f.category==='Change'));
+assert.equal(f5.environment.midi2Capable,true);assert.equal(f5.environment.midiServices,true);
 // log text
 const sa=analyzeLogText('setupapi.dev.log','>>>  [Device Install (Hardware initiated) - USB\\VID_1]\n>>>  Section start 2026/10/08\n<<<  [Exit status: FAILURE(0xe0000228)]\n>>>  [Device Install - OK]\n<<<  [Exit status: SUCCESS]\n');
 assert.equal(sa.type,'setupapi');assert.equal(sa.findings.length,1);assert.match(sa.findings[0].explain,/compatible/);

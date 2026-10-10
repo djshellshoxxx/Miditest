@@ -69,10 +69,27 @@ foreach ($root in "$env:ProgramData\Microsoft\Windows\WER\ReportArchive", "$env:
     }
   }
 }
+# --- F05 evidence: USB history, parent chain (USB tree), recent changes, Windows build ---
+$byId = @{}; foreach ($d in $pnp) { $byId[$d.PNPDeviceID] = $d.Name }
+$arrivals = @{}
+try { foreach ($e in (Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Kernel-PnP/Configuration'; Id = 410; StartTime = $since } -MaxEvents 1500 -ErrorAction Stop)) { foreach ($d in $devices) { if ($d.id -and $e.Message -like "*$($d.id)*") { $arrivals[$d.id] = 1 + [int]$arrivals[$d.id] } } } } catch { [void]$errs.Add("Kernel-PnP 410: $($_.Exception.Message)") }
+function Get-Prop($id, $key) { try { (Get-PnpDeviceProperty -InstanceId $id -KeyName $key -ErrorAction Stop).Data } catch { $null } }
+$usbHistory = @(); $usbTree = @()
+foreach ($d in ($devices | Select-Object -First 12)) {
+  $fmt = { param($v) if ($v -is [datetime]) { $v.ToString('o') } else { $null } }
+  $usbHistory += [pscustomobject]@{ id = $d.id; name = $d.name; firstInstall = (& $fmt (Get-Prop $d.id 'DEVPKEY_Device_FirstInstallDate')); lastArrival = (& $fmt (Get-Prop $d.id 'DEVPKEY_Device_LastArrivalDate')); lastRemoval = (& $fmt (Get-Prop $d.id 'DEVPKEY_Device_LastRemovalDate')); arrivals = [int]$arrivals[$d.id] }
+  $path = @($d.name); $cur = $d.id
+  for ($i = 0; $i -lt 5; $i++) { $par = Get-Prop $cur 'DEVPKEY_Device_Parent'; if (-not $par) { break }; $path += $(if ($byId[$par]) { $byId[$par] } else { $par }); $cur = $par }
+  $usbTree += [pscustomobject]@{ id = $d.id; path = $path }
+}
+$drvInst = @()
+try { foreach ($e in (Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-UserPnp'; Id = 20001; StartTime = (Get-Date).AddDays(-([math]::Min($days, 7))) } -MaxEvents 30 -ErrorAction Stop)) { $m = [string]$e.Message; if ($m.Length -gt 200) { $m = $m.Substring(0, 200) }; $drvInst += [pscustomobject]@{ time = $e.TimeCreated.ToString('o'); message = $m } } } catch { }
+$hot = @(Get-HotFix | Where-Object { $_.InstalledOn -gt $since } | ForEach-Object { [pscustomobject]@{ id = $_.HotFixID; installedOn = $_.InstalledOn.ToString('o') } })
+$os = Get-CimInstance Win32_OperatingSystem
 $dumps = @(Get-ChildItem "$env:WINDIR\Minidump" -Filter *.dmp | Where-Object { $_.LastWriteTime -gt $since } | ForEach-Object { $_.Name + ' ' + $_.LastWriteTime.ToString('o') })
 [pscustomobject]@{
-  generated = (Get-Date).ToString('o'); days = $days
+  schema = 2; generated = (Get-Date).ToString('o'); days = $days; build = [int]$os.BuildNumber; lastBoot = $os.LastBootUpTime.ToString('o')
   os = (Get-CimInstance Win32_OperatingSystem | Select-Object -ExpandProperty Caption) + ' ' + (Get-CimInstance Win32_OperatingSystem | Select-Object -ExpandProperty Version)
   events = @($events | Sort-Object time -Descending | Select-Object -First 300); devices = $devices; drivers = $drivers; services = $services
-  usbSelectiveSuspend = $sus; setupapi = $setup; wer = $wer; minidumps = $dumps; errors = @($errs)
+  usbSelectiveSuspend = $sus; usbHistory = $usbHistory; usbTree = $usbTree; changes = [pscustomobject]@{ driverInstalls = $drvInst; hotfixes = $hot }; setupapi = $setup; wer = $wer; minidumps = $dumps; errors = @($errs)
 } | ConvertTo-Json -Depth 6 -Compress
