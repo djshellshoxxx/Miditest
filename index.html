@@ -28,7 +28,7 @@
 </section>
 
 <nav class="tabs" aria-label="Diagnostic views" role="tablist">
-  <button class="tab active" role="tab" aria-selected="true" aria-controls="quick" data-view="quick">Quick Test</button><button class="tab" role="tab" aria-selected="false" aria-controls="monitorView" data-view="monitorView">Monitor</button><button class="tab" role="tab" aria-selected="false" aria-controls="controlsView" data-view="controlsView">Controls</button><button class="tab" role="tab" aria-selected="false" aria-controls="keyboardView" data-view="keyboardView">Keyboard</button><button class="tab" role="tab" aria-selected="false" aria-controls="timingView" data-view="timingView">Timing</button><button class="tab" role="tab" aria-selected="false" aria-controls="outputView" data-view="outputView">Output</button><button class="tab" role="tab" aria-selected="false" aria-controls="mappingView" data-view="mappingView">Mapping</button><button class="tab" role="tab" aria-selected="false" aria-controls="testsView" data-view="testsView">Tests</button><button class="tab" role="tab" aria-selected="false" aria-controls="winlogView" data-view="winlogView">Windows Logs</button><button class="tab" role="tab" aria-selected="false" aria-controls="reportView" data-view="reportView">Report</button>
+  <button class="tab active" role="tab" aria-selected="true" aria-controls="quick" data-view="quick">Quick Test</button><button class="tab" role="tab" aria-selected="false" aria-controls="monitorView" data-view="monitorView">Monitor</button><button class="tab" role="tab" aria-selected="false" aria-controls="controlsView" data-view="controlsView">Controls</button><button class="tab" role="tab" aria-selected="false" aria-controls="keyboardView" data-view="keyboardView">Keyboard</button><button class="tab" role="tab" aria-selected="false" aria-controls="timingView" data-view="timingView">Timing</button><button class="tab" role="tab" aria-selected="false" aria-controls="outputView" data-view="outputView">Output</button><button class="tab" role="tab" aria-selected="false" aria-controls="mappingView" data-view="mappingView">Mapping</button><button class="tab" role="tab" aria-selected="false" aria-controls="testsView" data-view="testsView">Tests</button><button class="tab" role="tab" aria-selected="false" aria-controls="winlogView" data-view="winlogView">Windows Logs</button><button class="tab" role="tab" aria-selected="false" aria-controls="graphsView" data-view="graphsView">Graphs</button><button class="tab" role="tab" aria-selected="false" aria-controls="reportView" data-view="reportView">Report</button>
 </nav>
 
 <section id="quick" class="view active-view" role="tabpanel">
@@ -67,7 +67,7 @@
 <section id="controlsView" class="view" role="tabpanel">
   <div class="grid controls-layout">
     <article class="panel"><div class="section-head"><div><h2>Detected controls</h2><p>Select a CC to inspect.</p></div></div><div id="controls"></div></article>
-    <article class="panel"><div class="section-head"><div><h2>Control detail</h2><p id="controlTitle">No control selected.</p></div><button id="isolateControl">Reset selected capture</button></div><div id="controlDetail"></div><canvas id="controlGraph" width="900" height="220" aria-label="Selected control value over time"></canvas><div id="controlHistogram" class="histogram"></div></article>
+    <article class="panel"><div class="section-head"><div><h2>Control detail</h2><p id="controlTitle">No control selected.</p></div><div class="action-row"><label class="inline-field">Control type <select id="controlKind"><option value="">Untagged</option><option value="knob">Knob</option><option value="fader">Fader</option></select></label><button id="isolateControl">Reset selected capture</button></div></div><div id="controlDetail"></div><canvas id="controlGraph" width="900" height="220" aria-label="Selected control value over time"></canvas><div id="controlHistogram" class="histogram"></div></article>
   </div>
   <div class="grid three"><article class="panel"><h2>Pedals & expression</h2><div id="pedalStats"></div></article><article class="panel"><h2>Aftertouch</h2><div id="aftertouchStats"></div></article><article class="panel"><h2>High resolution / parameters</h2><div id="hiresStats"></div></article></div>
   <div class="grid two"><article class="panel"><div class="section-head"><div><h2>Pitch bend</h2><p>Range centered on neutral (0). Release the wheel several times to measure center return.</p></div></div><div id="pitchStats"></div><div id="pitchMeter" class="pitch-meter" aria-hidden="true"><span class="pitch-center"></span><span id="pitchRange" class="pitch-range"></span><span id="pitchNow" class="pitch-now"></span></div></article><article class="panel"><div class="section-head"><div><h2>MPE-like activity</h2><p>Per-channel note, pitch bend, pressure and CC74. Passive observation only; not an MPE conformance check.</p></div></div><div id="mpeStats"></div></article></div>
@@ -135,9 +135,17 @@
   <div id="winResults"></div>
 </section>
 
+<section id="graphsView" class="view" role="tabpanel">
+  <article class="panel">
+    <div class="section-head"><div><h2>Graphs</h2><p>Pie charts, line charts and bar charts of everything captured so far. They update live while you test.</p></div></div>
+    <div id="graphsHost"></div>
+  </article>
+</section>
+
 <section id="reportView" class="view" role="tabpanel">
   <article class="panel report">
     <div class="section-head"><div><h2>Diagnostic Report</h2><p>Evidence-focused summary, baseline comparison and exports.</p></div><div class="action-row"><button id="saveBaseline">Save baseline</button><label class="file-btn">Import report<input id="importReport" type="file" accept=".json,application/json"></label><button id="compareBaseline">Compare</button><button id="clearLocal">Clear local data</button></div></div>
+    <div id="reportCharts"></div>
     <div id="reportHuman"></div>
     <div class="action-row"><button id="exportReport" class="primary">Export JSON</button><button id="exportReportCsv">Export CSV</button><button id="printReport">Print</button></div>
     <details><summary>Raw report JSON</summary><pre id="reportPreview"></pre></details>

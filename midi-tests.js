@@ -58,7 +58,7 @@ export function doubleTriggers(events=[],{gapMs=25,shortMs=10}={}){
   const worstKeys=Object.entries(perKey).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,c])=>({note:Number(n),count:c}));
   const lowVel=re.filter(x=>x.velocity<20).length,count=re.length+short.length;
   const status=ons<10?'notrun':count>=3?'investigate':count>0?'attention':'ok';
-  return {status,noteOns:ons,retriggers:re.length,lowVelocityRetriggers:lowVel,shortNotes:short.length,minGap:re.length?Math.min(...re.map(x=>x.gap)):null,worstKeys};
+  return {status,noteOns:ons,retriggers:re.length,lowVelocityRetriggers:lowVel,shortNotes:short.length,minGap:re.length?Math.min(...re.map(x=>x.gap)):null,worstKeys,perKey};
 }
 
 // ---------- T4 velocity response ----------

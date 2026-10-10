@@ -31,7 +31,8 @@ The modern workspace is organized into:
 - Mapping
 - Tests
 - Windows Logs
-- Report
+- Graphs (pie, line and bar charts: keys total vs working vs broken, knob and fader health, velocity, pitch bend, mod wheel, sustain, aftertouch, timing, tests)
+- Report (includes the same graphs)
 
 The full GUI contract is in `docs/specs/2026-10-06-modern-gui-spec.md`. Functional clarifications and acceptance criteria are in `docs/specs/2026-10-06-complete-functional-spec.md`.
 
