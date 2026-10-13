@@ -98,6 +98,28 @@ c.sendSpp(99999);assert.deepEqual(f.sent.at(-1).b,[0xF2,127,127]);
 c.stop();
 f=fake();c=createClockScheduler(f.api);c.start(10);assert.equal(c.stats().bpm,30);c.stop();
 
+// Timer suspension must not emit thousands of outdated MIDI ticks on resume.
+{
+  let clockMs=0, pendingPump=null;
+  const sent=[];
+  const scheduler=createClockScheduler({
+    now:()=>clockMs,
+    send:(bytes,when)=>sent.push({bytes:[...bytes],when}),
+    setTimer:(fn)=>{pendingPump=fn;return 1;},
+    clearTimer:()=>{},
+  });
+  scheduler.start(120);
+  const before=sent.length;
+  const resume=pendingPump;
+  clockMs=30_000; // Simulate OS sleep / background tab throttling.
+  resume();
+  const resumed=sent.slice(before).filter(event=>event.bytes[0]===0xF8);
+  assert.ok(resumed.length<=5,'must not replay 30 seconds of stale MIDI clock ticks');
+  assert.ok(resumed.every(event=>event.when>=clockMs),'new MIDI clocks must not be backdated');
+  assert.ok(resumed.length>0,'clock continues after suspension');
+  scheduler.stop();
+}
+
 // clockMeasure: 120 BPM, 0.1% slow, 3 ms latency
 const sent=[],got=[];for(let i=0;i<500;i++){sent.push(i*per);got.push(3+i*per*1.001)}
 let m=clockMeasure(sent,got,120);
