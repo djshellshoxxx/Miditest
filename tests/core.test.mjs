@@ -120,3 +120,11 @@ const ps2=performanceStats([{kind:'noteon',channel:1,a:60,b:90,t:0},{kind:'noteo
 assert.equal(ps2.durationStats.mean,100);
 
 console.log('MIDItest core tests: PASS');
+const switchingTracker=createParameterTracker();
+processParameterMessage(switchingTracker,{kind:'cc',channel:1,a:99,value:3});
+processParameterMessage(switchingTracker,{kind:'cc',channel:1,a:98,value:4});
+assert.equal(processParameterMessage(switchingTracker,{kind:'cc',channel:1,a:6,value:10}).parameter,388);
+processParameterMessage(switchingTracker,{kind:'cc',channel:1,a:101,value:0});
+assert.equal(processParameterMessage(switchingTracker,{kind:'cc',channel:1,a:6,value:11}),null,'RPN must not reuse prior NRPN LSB');
+processParameterMessage(switchingTracker,{kind:'cc',channel:1,a:100,value:1});
+assert.equal(processParameterMessage(switchingTracker,{kind:'cc',channel:1,a:6,value:12}).parameter,1);
