@@ -85,3 +85,11 @@ Primary design/specification sources:
 - `docs/specs/2026-10-06-modern-gui-spec.md`
 - `docs/specs/2026-10-06-complete-functional-spec.md`
 - `docs/superpowers/plans/2026-10-01-miditest-implementation.md`
+
+## Verified test status
+
+On Linux, each file run by `npm test` exits 0 on this snapshot: `tests/core.test.mjs`, `tests.test.mjs`, `lib-a.test.mjs`, `lib-b.test.mjs`, `lib-c.test.mjs`, `fixtures.test.mjs` and `ui-static.test.mjs`, followed by the module syntax checks. The browser and Electron checks were not run.
+
+## Wiki
+
+Wiki source pages are in [docs/wiki/](docs/wiki/Home.md): developer guide, architecture summary and codebase map.
