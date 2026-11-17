@@ -142,8 +142,13 @@ export function createParameterTracker(){return {channels:new Map()}}
 export function processParameterMessage(tracker,e){
   if(!tracker||e.kind!=='cc'||!e.channel)return null;if(!tracker.channels.has(e.channel))tracker.channels.set(e.channel,{mode:null,msb:null,lsb:null,dataMsb:0,dataLsb:0});
   const s=tracker.channels.get(e.channel);
-  if(e.a===99){s.mode='NRPN';s.msb=e.value;return null} if(e.a===98){s.mode='NRPN';s.lsb=e.value;return null}
-  if(e.a===101){s.mode='RPN';s.msb=e.value;return null} if(e.a===100){s.mode='RPN';s.lsb=e.value;return null}
+  if(e.a===99||e.a===98||e.a===101||e.a===100){
+    const mode=e.a===99||e.a===98?'NRPN':'RPN';
+    if(s.mode!==mode){s.mode=mode;s.msb=null;s.lsb=null}
+    if(e.a===99||e.a===101)s.msb=e.value;
+    else s.lsb=e.value;
+    return null;
+  }
   if(e.a===6){s.dataMsb=e.value} else if(e.a===38){s.dataLsb=e.value} else if(e.a!==96&&e.a!==97)return null;
   if(s.mode&&s.msb!==null&&s.lsb!==null){return {type:s.mode,channel:e.channel,parameter:(s.msb<<7)|s.lsb,value14:(s.dataMsb<<7)|s.dataLsb,increment:e.a===96?1:e.a===97?-1:0}}
   return null;
